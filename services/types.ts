@@ -1,7 +1,8 @@
 export enum MapType {
     route,
     stop,
-    version
+    version,
+    reference
 };
 
 export enum Direction {

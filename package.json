@@ -17,7 +17,7 @@
     "nuxt": "^3.12.2",
     "ol": "^8.1.0",
     "splitpanes": "^3.1.5",
-    "vue": "latest",
+    "vue": "^3.4.33",
     "vuetify": "^3.6.10"
   },
   "devDependencies": {

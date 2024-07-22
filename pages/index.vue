@@ -10,12 +10,14 @@
                        v-bind="props"></v-fab>
             </template>
             <rtx-nav />
-        </v-menu>    
+        </v-menu>
+        <rtx-searcher v-if="has('user')" />
         <div id="map"></div>
     </v-container>
 </template>
 <script>
 import { settings } from "jet-ext/composables/settings";
+import { get as getProfile }  from "jet-ext/composables/profile";
 import { empty } from "jet-ext/utils";
 import { mapSettings } from "~/composables/map";
 
@@ -30,7 +32,6 @@ export default {
         RtxNav
     },
     setup(){
-        
         if ( settings.local && (settings.local["map-provider"]) ){
             let n = mapSettings.providers.findIndex( p => p.id === settings.local["map-provider"] );
             if (
@@ -68,6 +69,13 @@ export default {
         }catch(e){}
     },
     methods: {
+        has(q){
+            switch(q){
+                case "user":
+                    return getProfile("has-subject");
+            }
+            return false;
+        },
         initMap(){
             if (map){
                 map.destroy();

@@ -8,7 +8,7 @@
                 <v-btn tile icon="mdi-plus"
                        size="small"
                        v-bind="props"
-                       to="/" />
+                       v-on:click="doroute(true)" />
             </template>
         </v-tooltip>
         <v-tooltip text="изменить...">
@@ -16,7 +16,7 @@
                 <v-btn tile icon="mdi-pencil"
                        size="small"
                        v-bind="props"
-                       to="/" />
+                       v-on:click="doroute(false)" />
             </template>
         </v-tooltip>
         <v-tooltip text="удалить">
@@ -24,7 +24,7 @@
                 <v-btn tile icon="mdi-close"
                        size="small"
                        v-bind="props"
-                       to="/" />
+                       v-on:click="delroute" />
             </template>
         </v-tooltip>
         <v-divider vertical />
@@ -83,7 +83,8 @@
                 </v-tabs>
             </pane>
         </splitpanes>
-    </v-container>    
+    </v-container>
+    <rtx-route-form ref="frmRoute" />
 </template>
 <script setup lang="ts">
     import { ref, watch } from "vue";
@@ -91,11 +92,14 @@
     import { Splitpanes, Pane } from 'splitpanes';
     import { empty } from "jet-ext/utils";
     import type { MapRoute } from "~/services/types";
-    import { default as all, getroutes} from "~/composables/all";
+    import { default as all, getroutes, delroute as $delroute } from "~/composables/all";
     import JetSearchInput from "jet-ext/components/JetSearchInput";
     import RtxRouteStops from "~/components/RtxRouteStops";
+    import RtxRouteForm from "~/components/route/RtxRouteForm";
         
-    const table= ref(null);
+    const table = ref(null),
+       frmRoute = ref(null);
+       
     const hdrs = ref([
             {title: '№', key: 'code'},
             {title: 'Маршрут', key: 'name'},
@@ -165,6 +169,37 @@
         item.toggle({value:item.id});
     };
     
+    /**
+     * Add/edit route
+     */
+    function doroute(add: boolean){
+        frmRoute.value.open(( add ) ? null : {...active.value});
+    };
+    
+    function delroute(){
+        if ( !active.value ){
+            return;
+        }
+        $app.msg({
+                    text: `Удалить выбранный маршрут № ${ active.value.code }. ${ active.value.name }?`,
+                    location: "top",
+                    color: "primary",
+                    click_title: "удалить",
+                    click: async( ok: any) => { 
+                        if ( ok ){
+                            try {
+                                await $delroute(unref(active));
+                            } catch(e){
+                                console.log('ERR(del)', e);
+                                $app.msg({text: `Ошибка удаления маршрута: ${ e.message }<br /> <small>${ e.data || ''}</small>`,
+                                         color: "warning"});
+                            }
+                        }
+                    },
+                    timeout: 20000
+                 });
+    };   //
+    
     watch(error, ()=>{
         if ( error.value ){
             $app.msg({text: `Ошибка получения списка маршрутов: ${ error.value.message }<br /> <small>${ error.value.data || ''}</small>`,
@@ -173,7 +208,9 @@
     });
     
 </script>
-<style lang="scss" scoped>
+<style lang="scss">
+    $selected:  rgb(var(--v-theme-primary));
+    
     .v-toolbar{
         & .h-search{
             width: 100%;
@@ -184,13 +221,12 @@
     }
     .rtx-routes{
         &__conte{
-            height: calc(100% - 48px) !important;
-            max-height: calc(100% - 48px) !important;
+            height: calc(100dvh - 80px) !important;
+            max-height: calc(100dvh - 80px) !important;
             padding: 0;
             overflow: hidden;
             & .v-data-table{
-                &__tr:has(td .v-icon.selected){
-                    $selected:  rgb(var(--v-theme-primary));
+                &__tr:has(.v-icon.selected){
                     background: $selected;
                     & > td {
                         background: $selected !important;
@@ -203,7 +239,6 @@
                     }
                 }
                 &__selected{
-                    $selected:  rgb(var(--v-theme-primary));
                     background: $selected;
                     & > td {
                         background: $selected !important;
@@ -215,6 +250,9 @@
         &__adds{
             height: calc(100% - 38px);
             max-height: calc(100% - 38px);
+            & .v-table{
+                height: 100% !important;
+            }
         }
     }
     

@@ -1,6 +1,6 @@
 import { reactive } from "vue";
 import type { MapRoute } from "~/services/types";
-import { routes, routeVersions, routePoints } from "~/services/routes";
+import { routes, routeVersions, routePoints, saveRoute, delRoute } from "~/services/routes";
 
 const all = reactive({
     routes: {
@@ -8,6 +8,8 @@ const all = reactive({
         active: null,
     }
 });
+
+export default all;
 
 export async function getroutes(): Promise<MapRoute>{
     if ( !( all.routes.items?.length > 0 ) ){
@@ -37,5 +39,26 @@ export async function getroutepoints( route: MapRoute ): Promise<number>{
     return route.points?.length || -1;
 };
 
+export async function saveroute( $route: MapRoute ): Promise<MapRoute>{
+    let route: MapRoute = await saveRoute($route);
+    
+    let n = all.routes.items.findIndex( (r: MapRoute) => r.id === route.id );
+    
+    if ( n < 0 ){
+        all.routes.items.splice(0, 0, route);
+    } else {
+        all.routes.items.splice(n, 1, route);
+    }
+    
+    return route;
+}
 
-export default all;
+export async function delroute( route: MapRoute ): Promise<void> {
+    let res = await delRoute(route);
+    if ( res ) {
+        let n = all.routes.items.findIndex( (r: MapRoute) => r.id === route.id );
+        if ( n > -1 ){
+            all.routes.items.splice(n, 1);
+        }
+    }
+}
