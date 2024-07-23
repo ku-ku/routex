@@ -239,7 +239,7 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
         ];
 
         feature.getGeometry().forEachSegment( (start, end) => {
-            if ( turf.distance(start, end, {units:'kilometers'}) > 0.25 ){
+            if ( $turf.distance(start, end, {units:'kilometers'}) > 0.25 ){
                         
                         const dx = end[0] - start[0];
                         const dy = end[1] - start[1];
@@ -521,7 +521,7 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
     *   Create a Features & drawing line
     *   don`t use external: see drawRoutes
     */
-    _drawRoute(route: Object) : void {
+    _drawRoute(route: any) : void {
         if ( (route.points?.length||0) < 3){
             return; 
         }
@@ -529,7 +529,7 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
         let layer = this._getLayer("routes-layer", true);
         
         let source = layer.getSource();
-        if (!source){
+        if ( !source ){
             source = new VectorSource();
             layer.setSource(source);
         }
@@ -583,8 +583,7 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
     
     drawRoutes(routes: Array) : void {
         
-        routes.forEach( route => {
-            route.type  = "route";
+        routes.forEach( (route: any) => {
             if ( !route.color ){
                 route.color = CMapUtils.nextColor();
             }

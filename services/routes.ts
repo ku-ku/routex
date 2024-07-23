@@ -73,6 +73,11 @@ export async function routePoints(routeId: string, verId?: string){
                         query
     });
     
+    data.forEach( (d: any) => {
+        d.lat = d.Lat;
+        d.lon = d.Lon;
+    });
+    
     return data;
 }
 

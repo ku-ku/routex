@@ -20,9 +20,11 @@ import { settings } from "jet-ext/composables/settings";
 import { get as getProfile }  from "jet-ext/composables/profile";
 import { empty } from "jet-ext/utils";
 import { mapSettings } from "~/composables/map";
+import { default as all, getroutepoints } from "~/composables/all";
 
 import { OlMapProvider } from "~/utils/map/OlMapProvider";
 import RtxNav from "~/components/RtxNav";
+
     
 let map = null;
 
@@ -42,7 +44,12 @@ export default {
             }
         }
         
+        const route = computed(()=>{
+            return all.routes.active;
+        });
+        
         return {
+            route
         };
     },
     data(){
@@ -92,7 +99,27 @@ export default {
             map.init({ node, center: mapSettings.center }).then(()=>{
                 this.ready = true;
             });
-        }  //initMap
+        },  //initMap
+        async drawRoute(){
+            map.clean();
+            if ( !this.route ){
+                return;
+            }
+            if ( !(this.route.points?.length > 0) ){
+                try {
+                    await getroutepoints(this.route);
+                } catch(e){
+                    $app.msg({text:`Ошибка загрузки трассы маршрута:<div class="small">${ e.message } ${ e.data || ''}</div>`, color: 'warning'});
+                }
+            }
+            map.drawRoutes( [this.route] );
+        }
+    },
+    watch: {
+        route(val){
+            console.log('route', val);
+            this.drawRoute();
+        }
     }
 }
 </script>

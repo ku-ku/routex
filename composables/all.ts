@@ -4,14 +4,14 @@ import { routes, routeVersions, routePoints, saveRoute, delRoute } from "~/servi
 
 const all = reactive({
     routes: {
-        items: [],
-        active: null,
+        items: [] as MapRoute[],
+        active: null as null|MapRoute,
     }
 });
 
 export default all;
 
-export async function getroutes(): Promise<MapRoute>{
+export async function getroutes(): Promise<MapRoute[]>{
     if ( !( all.routes.items?.length > 0 ) ){
         let res: any = await routes();
         if ( res.error ){
