@@ -80,7 +80,7 @@
         position: absolute;
         left: 78px;
         top:  16px;
-        z-index: 2;
+        z-index: 3;
         min-width: 20rem;
         & .h-search{
             width: calc(100% - 1rem);

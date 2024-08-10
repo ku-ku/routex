@@ -1,5 +1,6 @@
 export enum MapType {
     route,
+    point,
     stop,
     version,
     reference
@@ -23,18 +24,33 @@ export type MapObject = {
 };
 
 export type MapRouteVersion = MapObject & {
-    dt: Date
+    regdt: Date
 };
 
+export type MapPoint =  MapObject & {
+    direction: Direction,   /* forward|backward */
+    lat: number,
+    lon: number,
+    index: number,
+    location: any,
+    routeID?: null|string,
+    locationID?: null|string,
+    color: null|string,
+    ended: boolean,
+    typeID?: string,
+    twnID?: null|string,
+    radius?:null|number
+};
 export type MapRoute = MapObject & {
     num: number,
-    direction: Direction,   /* forward|backward|nears */
+    direction: Direction,   /* forward|backward */
     start: Date,
     end:   Date|null,
     routeTypeID: string,
+    color?: string,
     versions?: Array<MapRouteVersion>,
     version?: MapRouteVersion,
-    points?: Array<any>
+    points?: Array<MapPoint>
 };
 
 

@@ -32,7 +32,7 @@ export const mapSettings = reactive({
         items: [],
         at: 0,  //for watching
         select: item => {
-            if (!item.type){
+            if ( !item.type ){
                 console.log("undefined type", item);
             }
             let n = mapSettings.selected.items.findIndex( i => i.type === item.type );

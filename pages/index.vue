@@ -12,6 +12,9 @@
             <rtx-nav />
         </v-menu>
         <rtx-searcher v-if="has('user')" />
+        <rtx-map-pane v-if="route" 
+                      v-on:stop="onstop" 
+                      v-on:change="onchange" />
         <div id="map"></div>
     </v-container>
 </template>
@@ -24,6 +27,7 @@ import { default as all, getroutepoints } from "~/composables/all";
 
 import { OlMapProvider } from "~/utils/map/OlMapProvider";
 import RtxNav from "~/components/RtxNav";
+import RtxMapPane from "~/components/RtxMapPane";
 
     
 let map = null;
@@ -31,7 +35,8 @@ let map = null;
 export default {
     name: 'indexPage',
     components: {
-        RtxNav
+        RtxNav,
+        RtxMapPane
     },
     setup(){
         if ( settings.local && (settings.local["map-provider"]) ){
@@ -105,6 +110,7 @@ export default {
             if ( !this.route ){
                 return;
             }
+            this.route.modify = true;
             if ( !(this.route.points?.length > 0) ){
                 try {
                     await getroutepoints(this.route);
@@ -112,6 +118,15 @@ export default {
                     $app.msg({text:`Ошибка загрузки трассы маршрута:<div class="small">${ e.message } ${ e.data || ''}</div>`, color: 'warning'});
                 }
             }
+            map.drawRoutes( [this.route] );
+        },
+        onstop(stop){
+            if (stop){
+                map.center = stop;
+            }
+        },
+        onchange(){
+            map.clean();
             map.drawRoutes( [this.route] );
         }
     },

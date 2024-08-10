@@ -4,6 +4,7 @@ import LineString from 'ol/geom/LineString.js';
 import Polygon from 'ol/geom/Polygon.js';
 import WKT from 'ol/format/WKT.js';
 import { parseColor } from "vuetify/lib/util/colorUtils";
+import { Direction } from "~/services/types";
 
 const _TRACK_ICONS = {
         POINTER: 'map-images/map-pointer.png',
@@ -46,13 +47,6 @@ const _COLORS = [
                     "#0288d1"  /* blue */
 ];
 
-export enum Direction {
-    unknown = -1,
-    forward = 0,
-    backward= 1,
-    any     = 2  //for end-stop forward/backward
-};
-
 export enum STOP_TYPES {
         stop      = 'bd78259f-7b64-ad44-e040-007f02002b0e',
         end       = 'bd78259f-7b66-ad44-e040-007f02002b0e',
@@ -60,7 +54,6 @@ export enum STOP_TYPES {
         checkpoint= 'dcc1d9a7-46ca-0134-e040-007f02005bc1',
         other     = 'bd78259f-7b65-ad44-e040-007f02002b0e'
 };
-
 
 export type Coords = {
     lon:   number,
@@ -117,7 +110,7 @@ export class CMapUtils {
         });
         
         if ( 3 === route.endStops ){
-            ends[1].direction = Direction.any;
+            ends[1].direction = Direction.both;
         }
         
     };  //splitPoints

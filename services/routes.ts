@@ -6,11 +6,13 @@ const VERSIO_VIEW_ID = "6a910f42-4f28-4c25-8960-ca1190541bd5";
 const POINTS_VIEW_ID = "91e8c86a-d42e-441d-9d59-c8a2f60ffc20";
 
 import { empty } from "jet-ext/utils";
-import { MapType } from "./types";
-import type { MapRoute, MapRouteVersion } from "./types";
-
+import { MapType, Direction} from "./types";
+import type { MapRoute, MapPoint, MapRouteVersion } from "./types";
+import { END_STOP_TYPE } from "./stops";
 
 const _re_num = /[^0-9]+/g;
+
+
 
 function _normalize( route: any ): void{
     route.type = MapType.route;
@@ -54,14 +56,15 @@ export async function routeVersions(routeId: string): Promise<MapRouteVersion>{
     if ( data?.length > 0 ){
         data.forEach( (d: any) => {
             d.type= MapType.version;
-            d.dt  = $moment(d.regDt).toDate();
+            d.regdt= $moment(d.regDt).toDate();
             d.code= d.versionNum ? Number( (''+d.versionNum).replace(_re_num, '')) : 999;
+            d.name= d.stateIDName;
         } );
     }
-    return data;
+    return data.sort( (d1:MapRouteVersion,d2:MapRouteVersion) => {return (d1.code < d2.code) ? 1 : -1;} );  //desc sort
 } 
 
-export async function routePoints(routeId: string, verId?: string){
+export async function routePoints(routeId: string, verId?: string): Promise<MapPoint[]>{
     let query = `sin2:/v:${ POINTS_VIEW_ID }?filter=eq(field(".routeId"), param("${ routeId }", "id"))`;
     if ( !empty(verId) ){
         query = `sin2:/v:${ POINTS_VIEW_ID }?filter=and(eq(field(".routeId"), param("${ routeId }", "id")), eq(field(".versionId"), param("${ verId }", "id"))`;
@@ -74,8 +77,12 @@ export async function routePoints(routeId: string, verId?: string){
     });
     
     data.forEach( (d: any) => {
+        d.direction = Direction.forward;
         d.lat = d.Lat;
         d.lon = d.Lon;
+        d.name = d.locationIDlocName;
+        d.type = (d.locationID) ? MapType.stop : MapType.point;
+        d.ended= END_STOP_TYPE===d.typeID;
     });
     
     return data;

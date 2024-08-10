@@ -37,7 +37,7 @@ const config: NuxtConfig = {
             branding: isDev ? '/branding' : `${ _HOST }/branding`,
             static: isDev ? '/static/model/view/' : `${ _HOST }/static/model/view/`,
             channel: "routex",
-            apiKey: Math.trunc(Math.random() * 10000000)
+            apiKey: btoa('' + Math.random() * 10000000)
         }
     },
     build: {

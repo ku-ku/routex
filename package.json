@@ -15,9 +15,10 @@
     "hex-to-hsl": "^1.0.2",
     "jet-ext": "link:../jet-ext",
     "nuxt": "^3.12.2",
-    "ol": "^8.1.0",
+    "ol": "^10.0.0",
     "splitpanes": "^3.1.5",
     "vue": "^3.4.33",
+    "vuedraggable": "^4.1.0",
     "vuetify": "^3.6.10"
   },
   "devDependencies": {

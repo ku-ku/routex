@@ -1,5 +1,6 @@
 import { empty } from "jet-ext/utils";
-import {Map, View} from 'ol';
+import {Map, View, MapEvent} from 'ol';
+
 import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer';
 import {OSM, Vector as VectorSource} from 'ol/source';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -11,9 +12,16 @@ import {Circle as CircleStyle, Fill, Stroke, Style, Icon, Text, RegularShape} fr
 import * as olExtent from 'ol/extent';
 import Select, { SelectEvent } from 'ol/interaction/Select';
 import { singleClick } from 'ol/events/condition';
+import {
+  Pointer as PointerInteraction,
+  defaults as defaultInteractions,
+} from 'ol/interaction.js';
+
 import hexToHsl from 'hex-to-hsl';
 
-import { Direction, CMapUtils, IMapProvider, Coords } from "./IMapProvider";
+import { CMapUtils, IMapProvider, Coords } from "./IMapProvider";
+import { MapType, Direction } from "~/services/types";
+import type { MapObject, MapPoint, MapRoute } from "~/services/types";
 
 import 'ol/ol.css';
 
@@ -23,14 +31,131 @@ import { regiMapProvider, mapSettings } from "~/composables/map";
 declare const $turf: any;
 declare const $moment: any;
 
+class Drag extends PointerInteraction {
+    constructor(own: IMapProvider){
+        super({
+            handleDownEvent: handleDownEvent,
+            handleDragEvent: handleDragEvent,
+            handleMoveEvent: handleMoveEvent,
+            handleUpEvent: handleUpEvent,
+        });
+        
+        this._own = own;
+
+        /**
+         * @type {import("../src/ol/coordinate.js").Coordinate}
+         * @private
+         */
+        this.coordinate_ = null;
+
+        /**
+         * @type {string|undefined}
+         * @private
+         */
+        this.cursor_ = 'pointer';
+
+        /**
+         * @type {Feature}
+         * @private
+         */
+        this.feature_ = null;
+
+        /**
+         * @type {string|undefined}
+         * @private
+         */
+        this.previousCursor_ = undefined;
+    }
+};
+
+/**
+ * @param {import("../src/ol/MapBrowserEvent.js").default} evt Map browser event.
+ * @return {boolean} `true` to start the drag sequence.
+ */
+function handleDownEvent(evt: MapEvent): boolean {
+    const map: Map = evt.map;
+    const feature: Feature | null = map.forEachFeatureAtPixel(evt.pixel, (f: Feature) => {
+        return f;
+    });
+
+    if (feature) {
+        const props = feature.getProperties();
+        if (props.route){
+            return false;
+        }
+        
+        this.coordinate_ = evt.coordinate;
+        this.feature_ = feature;
+        return true;
+    }
+
+    return false;
+};
+
+/**
+ * @param {import("../src/ol/MapBrowserEvent.js").default} evt Map browser event.
+ */
+function handleDragEvent(evt: MapEvent) {
+    const deltaX = evt.coordinate[0] - this.coordinate_[0];
+    const deltaY = evt.coordinate[1] - this.coordinate_[1];
+
+    const geometry = this.feature_.getGeometry();
+    geometry.translate(deltaX, deltaY);
+
+    this.coordinate_[0] = evt.coordinate[0];
+    this.coordinate_[1] = evt.coordinate[1];
+}
+
+/**
+ * @param {import("../src/ol/MapBrowserEvent.js").default} evt Event.
+ */
+function handleMoveEvent(evt: MapEvent) {
+    if (this.cursor_) {
+        const map: Map = evt.map;
+        const feature: Feature|null = map.forEachFeatureAtPixel(evt.pixel, (f: Feature) => {
+            return f;
+        });
+        const element = evt.map.getTargetElement();
+        if (feature) {
+            if (element.style.cursor != this.cursor_) {
+              this.previousCursor_ = element.style.cursor;
+              element.style.cursor = this.cursor_;
+            }
+        } else if (this.previousCursor_ !== undefined) {
+            element.style.cursor = this.previousCursor_;
+            this.previousCursor_ = undefined;
+        }
+    }
+}
+
+/**
+ * @return {boolean} `false` to stop the drag sequence.
+ */
+function handleUpEvent(e: MapEvent) {
+    const route = this._own?._route,
+          props = this.feature_?.getProperties();
+    if ( route && props ){
+        const pt = (props.stop||props.point);
+        route.points.filter( (p: any) => p.id === pt.id ).forEach( (p: any) => {
+            p.lat = e.coordinate[1];
+            p.lon = e.coordinate[0];
+        });
+        this._own._drawRoute(route);
+    }
+    this.coordinate_ = null;
+    this.feature_ = null;
+    return false;
+}
+
 
 export class OlMapProvider extends CMapUtils implements IMapProvider {
     name: String = "OlMapProvider";
     
-    _map: Map = null;
+    _map: Map|null = null;
     
-    _node: DOMNode = null;
+    _node: DOMNode|null = null;
     
+    _route: MapRoute|null = null;
     
     get zoom(): Number {
         return this._map?.getView()?.getZoom();
@@ -66,7 +191,8 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
     async init(args: any): Promise<any>{
         return new Promise((resolve, reject)=>{
             this._node = args.node;
-            const map = new Map({
+            
+            const map: Map = new Map({
                 target: args.node,
                 layers: [
                   new TileLayer({
@@ -79,7 +205,8 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
                     zoom: 14,
                     enableRotation: false,
                     constrainResolution: true
-                })
+                }),
+                interactions: defaultInteractions().extend([new Drag(this)])
             });
             
             map.on('error', (e: any) => {
@@ -87,43 +214,73 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
                 reject(e);
             });
             
-            const select = new Select({
-                multi: true,
-                condition: singleClick,
-                style: false
-            });
-            
-            select.on('select',  e => {
-                e.selected?.map( feature => {
+            map.on('singleclick', (e: MapEvent)=>{
+                console.log('singleclick', e);
+                map.forEachFeatureAtPixel(e.pixel, (feature: Feature)=>{
                     const props = feature.getProperties();
-                    let item;
-                    if ( /^(track)+/.test(feature.getId()) ){
-                        item = e.mapBrowserEvent.coordinate;
-                        console.log('select track at', e);
-                        const evt = new Event("mapoint", {bubbles: true});
-                        evt.point = {coords: {lon: item[0], lat: item[1]}};
-                        document.dispatchEvent(evt);
-                        item = props.vehicle;
-                    } else if (props.route){
+                    let item: MapObject|null = null;
+                    if (props.route){
                         item = props.route;
                     } else if (props.stop){
                         item = props.stop;
-                    } else if (props.vehicle){
-                        item = props.vehicle;
+                    } else if (props.point){
+                        item = props.point;
                     } else {
                         console.log("unknown selected feature", feature);
                     }
-                    return item;
-                }).filter( item => !!item)
-                  .forEach( item=>{ this.select(item); });
+                    if ( item ) {
+                        const route : MapRoute = this._route;
+                        if ( e.originalEvent.ctrlKey ){
+                            let n = route.points.findIndex( (p:MapPoint) => p.id === item.id );
+                            if ( n > -1 ){
+                                route.points.splice(n, 1);
+                                this._drawRoute(this._route);
+                            }
+                            return;
+                        } else if (e.originalEvent.shiftKey){
+                            const pt = $turf.point(e.coordinate),
+                               _line = $turf.lineString( route.points?.map( p => [p.lon, p.lat] ));
+                            const snapped = $turf.nearestPointOnLine(_line, pt);
+                            const index: number = snapped.properties.index + 1;
+                            const prev = route.points.at(index - 1);
+                            const point: MapPoint = {
+                                id:  `${ (new Date()).getTime() }`,
+                                lon: e.coordinate[0],
+                                lat: e.coordinate[1], 
+                                type: MapType.point,
+                                locationId: null,
+                                location: null,
+                                direction: prev.direction,
+                                color: prev.color
+                            };
+                            route.points.splice(index, 0, point);
+                            route.points.forEach( (p, n) => {p.index = n;});
+                            this._drawRoute(route);
+                            return;
+                        }
+                        const evt = new Event("mapoint", {bubbles: true});
+                        
+                        evt.data = {
+                            item,
+                            action: e.originalEvent.shiftKey ? "add" : "select",
+                            coords: {
+                                lon: e.coordinate[0],
+                                lat: e.coordinate[1]
+                            }
+                        }
+                        document.dispatchEvent(evt);
+                    }
+                   
+                }, {
+                    hitTolerance: true
+                });
             });
-            map.addInteraction(select);
             
             this._map = map;
             
             console.log("OL(map)", map);
             
-            resolve();
+            resolve(true);
         });
     };   //init
     
@@ -217,13 +374,13 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
         if (layer){
             const source = layer.getSource();
             if (source){
-                source.forEachFeature( f => source.removeFeature(f) );
+                source.forEachFeature( (f: Feature) => source.removeFeature(f) );
             }
         }
     };  //_emptyLayer
     
     
-    _routeStyle = feature => {
+    _routeStyle = (feature: Feature) => {
         const props = feature.getProperties();
         const { direction, color } = props;
 
@@ -237,8 +394,8 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
                 })
             })
         ];
-
-        feature.getGeometry().forEachSegment( (start, end) => {
+/* TODO: no
+        feature.getGeometry().forEachSegment( (start: Coords, end: Coords) => {
             if ( $turf.distance(start, end, {units:'kilometers'}) > 0.25 ){
                         
                         const dx = end[0] - start[0];
@@ -258,17 +415,17 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
                         );
             }
         } );
-
+*/
         return styles;
     };   //routeStyle
     
     
-    _stopStyle = feature => {
-        const { stop } = feature.getProperties(),
+    _stopStyle = (feature: Feature) => {
+        const { stop, point } = feature.getProperties(),
               zoom  = this._map.getView().getZoom();
               
         const style = [new Style({
-                            text: (zoom > 13)
+                            text: ( (zoom > 13)&&(stop) )
                                     ? new Text({
                                         font: '12px Arial,sans-serif',
                                         fill: new Fill({
@@ -284,22 +441,27 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
                                     })
                                     : undefined,
                             image: new CircleStyle({
-                                        fill: new Fill({ color: stop.color }),
+                                        fill: new Fill({ color: (stop||point).color }),
                                         stroke: new Stroke({
                                             color: `rgba(255, 255, 255, 0.75)`,
-                                            width: 4
+                                            width: stop ? 4 : 2
                                         }),
-                                        radius: 10
+                                        radius: stop ? 10 : 4
                             })
-                        }),
-                        new Style({
+                        })
+                        
+        ];
+        
+        if ( stop?.short ){
+            style.push(new Style({
                             text: new Text({
                                     font: '8px Arial,sans-serif',
                                     text: stop.short,
                                     fill: new Fill({color: "#fff"})
                             })
                         })
-        ];
+            );
+        }
         
         return style;
     };   //stopStyle
@@ -521,17 +683,19 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
     *   Create a Features & drawing line
     *   don`t use external: see drawRoutes
     */
-    _drawRoute(route: any) : void {
-        if ( (route.points?.length||0) < 3){
+    _drawRoute(route: MapRoute ) : void {
+        if ( (route.points?.length||0) < 1){
             return; 
         }
         
-        let layer = this._getLayer("routes-layer", true);
+        let layer: VectorLayer = this._getLayer("routes-layer", true);
         
-        let source = layer.getSource();
+        let source: VectorSource|null = layer.getSource();
         if ( !source ){
             source = new VectorSource();
             layer.setSource(source);
+        } else {
+            source.clear();
         }
         
         let hsl = hexToHsl(route.color);
@@ -543,16 +707,16 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
         source.addFeatures([
                 new Feature({   
                                 geometry: new LineString(route.points
-                                                            .filter( p => (p.direction === Direction.forward) )
-                                                            .map( p => [p.lon, p.lat] )
+                                                            .filter( (p:MapPoint) => (p.direction === Direction.forward) )
+                                                            .map( (p:MapPoint) => [p.lon, p.lat] )
                                             ),
                                 color: color1,
                                 route: route
                 }),
                 new Feature({
                                 geometry: new LineString(route.points
-                                                            .filter( p => (p.direction === Direction.backward) )
-                                                            .map( p => [p.lon, p.lat] )
+                                                            .filter( (p:MapPoint) => (p.direction === Direction.backward) )
+                                                            .map( (p:MapPoint) => [p.lon, p.lat] )
                                             ),
                                 color: color2,
                                 route: route
@@ -560,28 +724,33 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
         ]);
         
         layer = this._getLayer("stops-layer", true);
-        source = layer.getSource();
-        if (!source){
+        source= layer.getSource();
+        if ( !source ){
             source = new VectorSource();
             layer.setSource(source);
+        } else {
+            source.clear();
         }
         
+        /** add a stops & route-points */
         source.addFeatures(
-            route.points.filter( p => (p.locationId)||(p.location?.id) )
-                        .map( p => {
+            route.points.map( (p: MapPoint) => {
                                 p.color = (p.direction === Direction.forward) ? color1 : color2;
                                 return new Feature({
                                     geometry: new Point([p.lon, p.lat]),
-                                    stop: p
+                                    stop: (p.locationID||p.location?.id) ? p : null,
+                                    point: (p.locationID||p.location?.id) ? null : p
                                 });
                             })
 
         );
         
+        this._route = route;
+        
     };  //drawRoute
     
     
-    drawRoutes(routes: Array) : void {
+    drawRoutes(routes: Array<MapRoute>) : void {
         
         routes.forEach( (route: any) => {
             if ( !route.color ){

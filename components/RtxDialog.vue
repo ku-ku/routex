@@ -3,7 +3,7 @@
               :max-width="1024">
         <v-toolbar density="compact"
                    color="primary">
-            <v-toolbar-title>{{ title }}</v-toolbar-title>
+            <v-toolbar-title v-html="title"></v-toolbar-title>
             <v-spacer />
             <v-btn size="small"
                    icon="mdi-close"
@@ -64,7 +64,8 @@
     function close(save: boolean): void {
         if ( save ){
             $emit("save");
+        } else {
+            show.value = false;
         }
-        show.value = false;
     };
 </script>
