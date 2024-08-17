@@ -34,7 +34,7 @@ window["$turf"] = turf;
 let _c = -1;
 const _COLORS = [
                     "#4527a0", /* indigo */
-                    "#AFB42B", /* lime-darken-2 */
+                    "#827717", /* lime-darken-4 */
                     "#6a1b9a", /* deep-purple */
                     "#16ef00", /* green */
                     "#283593", /* navy */
