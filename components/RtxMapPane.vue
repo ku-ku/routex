@@ -1,6 +1,7 @@
 <template>
     <teleport to="body">
         <rtx-stop-form ref="stopForm" />
+        <rtx-route-version ref="routeVersion" />
     </teleport>
     <div class="rtx-map__pane">
         <v-toolbar density="compact" 
@@ -12,7 +13,8 @@
             </v-toolbar-title>
             <v-spacer />
             <rtx-route-versions :route="route" 
-                                can-add />
+                                can-add 
+                                v-on:newver="newver" />
             <v-btn size="x-small" icon="mdi-close" 
                    v-on:click="close"></v-btn>
             <template v-slot:extension>
@@ -145,6 +147,7 @@
         
     import RtxStopForm from "~/components/route/RtxStopForm";
     import RtxRouteVersions from "~/components/route/RtxRouteVersions";
+    import RtxRouteVersion from "~/components/route/RtxRouteVersion";
         
     const $emit = defineEmits<{
         (e: 'stop', stop: MapStop): void,
@@ -153,8 +156,9 @@
     
     const pending = ref(false);
     
-    const stopForm: Ref<RtxStopForm> = ref(null);
-
+    const stopForm: Ref<RtxStopForm> = ref(null),
+          routeVersion: Ref<RtxRouteVersion> = ref(null);
+          
     const route : Ref<MapRoute> = computed(()=>{
         return all.routes.active;
     });
@@ -328,6 +332,9 @@
         });
     }   //cleanroute
     
+    function newver(){
+        routeVersion.value.open(route.value);
+    }
     
     function shedulestop(stop: MapStop){
         activeStop.value = stop;

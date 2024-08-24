@@ -15,7 +15,7 @@
             </v-list-item>
             <template v-if="canAdd">
                 <v-divider />
-                <v-list-item>
+                <v-list-item v-on:click="$emit('newver')">
                     <template v-slot:append><v-icon size="small">mdi-plus</v-icon></template>
                     добавить версию трассы маршрута
                 </v-list-item>
@@ -26,6 +26,7 @@
 <script setup lang="ts">
     import { toRef } from "vue";
     import { routeVersions } from "~/services/routes";
+    import type { MapRoute } from "~/services/types";
     
     declare const $moment: any;
     
@@ -41,9 +42,11 @@
         }
     });
     
-    const route: Ref<any> = toRef(props, "route"),
-          canAdd: Ref<boolean> = toRef(props, "canAdd"),
-          current: Ref<any>= ref(null);
+    defineEmits(['newver']);
+    
+    const route:        Ref<MapRoute> = toRef(props, "route"),
+          canAdd:       Ref<boolean> = toRef(props, "canAdd"),
+          current:      Ref<any> = ref(null);
     
     const { pending, data: vers, error } = useAsyncData(async ()=>{
         current.value = null;
@@ -59,7 +62,6 @@
     function format(dt: Date): string {
         return $moment(dt).format('DD.MM.YYYY');
     }
-    
 </script>
 <style lang="scss">
     .rtx-vers{
