@@ -11,7 +11,8 @@
                 {{ route.code }}. {{ route.name }}
             </v-toolbar-title>
             <v-spacer />
-            <rtx-route-versions :route="route" />
+            <rtx-route-versions :route="route" 
+                                can-add />
             <v-btn size="x-small" icon="mdi-close" 
                    v-on:click="close"></v-btn>
             <template v-slot:extension>
@@ -80,9 +81,12 @@
                             </div>
                             <div class="route-stop__meta">
                                 <v-icon size="small">
-                                    {{s.ended ? 'mdi-bus-stop' : 'mdi-map-marker-radius-outline'}}
+                                    {{s.ended ? 'mdi-bus-stop' : (s.direction === Direction.forward) ? 'mdi-arrow-right-bold-circle-outline' : 'mdi-arrow-left-bold-circle-outline'}}
                                 </v-icon>
                                 &nbsp;{{ Number(s.lon).toFixed(5) }} / {{ Number(s.lat).toFixed(5) }}
+                                <template v-if="s.distance">
+                                    &nbsp;( {{ s.distance > 1000 ? Number(s.distance/1000).toFixed(2) + 'km' : s.distance + 'm'}} )
+                                </template>
                             </div>
                             <template v-slot:append>
                                 <v-menu>
@@ -186,7 +190,7 @@
             color: "primary",
             location: "top",
             timeout: 60000,
-            click: ok => {
+            click: (ok: boolean) => {
                 if ( ok ){
                     let n = route.value.points.findIndex( p => p.id === stop.id );
                     if ( n > -1 ){

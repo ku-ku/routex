@@ -1,5 +1,6 @@
 declare const $app: any;
 declare const $moment: any;
+declare const $turf: any;
 
 const ROUTES_VIEW_ID = "63cb4030-8bd7-40c5-820e-e7613769a8cc";
 const VERSIO_VIEW_ID = "6a910f42-4f28-4c25-8960-ca1190541bd5";
@@ -76,13 +77,22 @@ export async function routePoints(routeId: string, verId?: string): Promise<MapP
                         query
     });
     
+    let prev: MapPoint|null = null;
+    
     data.forEach( (d: any) => {
         d.direction = Direction.forward;
+        d.distance  = 0;
         d.lat = d.Lat;
         d.lon = d.Lon;
         d.name = d.locationIDlocName;
         d.type = (d.locationID) ? MapType.stop : MapType.point;
         d.ended= END_STOP_TYPE===d.typeID;
+        if ( prev ){
+            let p1 = $turf.point([prev.lon, prev.lat]),
+                p2 = $turf.point([d.lon, d.lat]);
+            d.distance = prev.distance + Math.round($turf.distance(p1, p2)*1000);
+        }
+        prev = d;
     });
     
     return data;

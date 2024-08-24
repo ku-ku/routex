@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import type { MapRoute } from "~/services/types";
+import type { MapRoute, MapPoint } from "~/services/types";
 import { routes, routeVersions, routePoints, saveRoute, delRoute } from "~/services/routes";
 
 const all = reactive({
@@ -36,6 +36,10 @@ export async function getroutepoints( route: MapRoute ): Promise<number>{
         throw res.error;
     }
     route.points = res;
+    if ( route.points?.length > 0 ){
+        const end:MapPoint = route.points.filter( (p: MapPoint) => p.ended ).at(1);
+        route.distance = end ? end.distance : null;
+    }
     return route.points?.length || -1;
 };
 

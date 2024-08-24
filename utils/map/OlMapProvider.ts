@@ -683,10 +683,12 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
     *   Create a Features & drawing line
     *   don`t use external: see drawRoutes
     */
-    _drawRoute(route: MapRoute ) : void {
+    _drawRoute( route: MapRoute ) : void {
         if ( (route.points?.length||0) < 1){
             return; 
         }
+        
+        CMapUtils.splitPoints(route);
         
         let layer: VectorLayer = this._getLayer("routes-layer", true);
         
@@ -697,17 +699,21 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
         } else {
             source.clear();
         }
-        
+/*        
         let hsl = hexToHsl(route.color);
-        hsl[2]  = (hsl[2] - 10) < 0 ? 0 : hsl[2] - 5;
         
-        let color1 = `hsl(${ hsl[0] }, ${ hsl[1] }%, ${ hsl[2] }%)`,
-            color2 = `hsl(${ hsl[0] }, ${ hsl[1] }%, ${ hsl[2]+10 }%)`;
-
+        hsl[0]  = (hsl[0] + 30) > 255 ? 224 : hsl[0] + 30;
+        hsl[2]  = (hsl[2] - 10) < 0 ? 0 : hsl[2] - 9;
+        let color1 = `hsl(${ hsl[0] - 30 }, ${ hsl[1] }%, ${ hsl[2] }%)`,
+            color2 = `hsl(${ hsl[0] }, ${ hsl[1] }%, ${ hsl[2] + 10 }%)`;
+*/
+        let color1 = "#558B2F", /* blue-accent-2 */
+            color2 = "#FF9800"; /* light-blue-accent-3 */
+        
         source.addFeatures([
                 new Feature({   
                                 geometry: new LineString(route.points
-                                                            .filter( (p:MapPoint) => (p.direction === Direction.forward) )
+                                                            .filter( (p:MapPoint) => (p.direction === Direction.forward)||(p.direction === Direction.both) )
                                                             .map( (p:MapPoint) => [p.lon, p.lat] )
                                             ),
                                 color: color1,
@@ -715,7 +721,7 @@ export class OlMapProvider extends CMapUtils implements IMapProvider {
                 }),
                 new Feature({
                                 geometry: new LineString(route.points
-                                                            .filter( (p:MapPoint) => (p.direction === Direction.backward) )
+                                                            .filter( (p:MapPoint) => (p.direction === Direction.backward)||(p.direction === Direction.both) )
                                                             .map( (p:MapPoint) => [p.lon, p.lat] )
                                             ),
                                 color: color2,

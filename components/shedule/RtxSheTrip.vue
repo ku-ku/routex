@@ -13,7 +13,10 @@
                 <div class="text-muted"><v-icon size="small">mdi-clock-outline</v-icon>
                     в пути {{ 
                     (trip.time > 60) ? Math.trunc(trip.time/60) + ' ч. ' + (trip.time - (Math.trunc(trip.time/60 )*60)) + ' мин.' : trip.time + ' мин.'
-                }}</div>
+                                                                }}<span v-if="trip.distance">
+                                                    &nbsp;(~{{ trip.distance }}км.)
+                                                </span>
+                </div>
             </div>
             <template v-slot:append>
                 <v-menu>
@@ -23,11 +26,13 @@
                                v-bind="props"></v-btn>
                     </template>
                     <v-list>
-                        <v-list-item prepend-icon="mdi-calendar-sync">
+                        <v-list-item prepend-icon="mdi-calendar-sync"
+                                     v-on:click="$emit('recalc')">
                             Пересчитать рейс...
                         </v-list-item>
                         <v-divider />
-                        <v-list-item prepend-icon="mdi-close">
+                        <v-list-item prepend-icon="mdi-close"
+                                     v-on:click="$emit('delete')">
                             Удалить рейс
                         </v-list-item>
                     </v-list>
@@ -55,6 +60,9 @@
                         {{ n + 1 }}
                     </div>
                     {{ s.name }}
+                    <div class="text-muted" v-if="s.distance">
+                        {{ s.distance > 1000 ? Number(s.distance/1000).toFixed(2) + ' km' :  s.distance + ' m'}}
+                    </div>
                     <template v-slot:append>
                         <v-btn size="x-small" icon="mdi-close"
                                variant="text">
@@ -66,6 +74,8 @@
     </v-card>
 </template>
 <script setup lang="ts">
+    import type { RtxTrip } from "~/services/"
+    
     const props = defineProps({
         trip: {
             type: Object,
@@ -73,9 +83,9 @@
         }
     });
     
-    const trip = toRef(props, "trip");
+    const trip: Ref<RtxTrip> = toRef(props, "trip");
     
-    const $emit = defineEmits(["click"]);
+    const $emit = defineEmits(["click", "recalc"]);
     
 </script>
 <style lang="scss">

@@ -43,7 +43,6 @@
     }
     
     function setime( t:Date|Number|Object|null ):void {
-        console.log('watch', t);
         let m = t ? $moment(t) : $moment([1900, 0, 1]);
         if ( m.isValid() ){
             time.value = m.toDate();
@@ -63,7 +62,8 @@
                 let m = $moment(time.value).startOf('day');
                 if ( !empty(val) ){
                     let times = val.split(/\:+/);
-                    m.add(Number(times.at(0)||0), 'hours').add(Number(times.at(1)||0), 'minutes');
+                    m.set('hours',   times.at(0)||0);
+                    m.set('minutes', times.at(1)||0);
                     time.value = m.toDate();
                 }
                 $emit('update:modelValue', time.value);

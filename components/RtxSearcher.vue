@@ -1,28 +1,36 @@
 <template>
     <div class="rtx-searcher">
         <v-menu v-model="show"
-                attach
-                min-width="480">
+                min-width="640"
+                content-class="rtx-searcher__nav">
             <template v-slot:activator="{ props }">
                 <jet-search-input hide-details light 
                                   color="default"
-                                  v-on:search = "search($event)" />
+                                  v-on:search = "search($event)" 
+                                  v-bind="props" />
             </template>
             <v-list density="compact">
-                <v-list-item v-for="d in searched"
-                             v-on:click="use(d)">
-                    <template v-slot:prepend>
-                        {{ d.code }}
-                    </template>
-                    <template v-slot:title>
-                        {{ d.name }}
-                    </template>
-                </v-list-item>
+                <template v-if="(searched?.length > 0)">
+                    <v-list-item v-for="d in searched"
+                                 v-on:click="use(d)">
+                        <template v-slot:prepend>
+                            {{ d.code }}
+                        </template>
+                        <template v-slot:title>
+                            {{ d.name }}
+                        </template>
+                    </v-list-item>
+                </template>          
+                <template v-else>
+                    <v-list-item title="введите несколько символов для поиска маршрута"></v-list-item>
+                </template>
             </v-list>
         </v-menu>
     </div>
 </template>
 <script setup lang="ts">
+    import { ref, onMounted } from "vue";
+    import { settings, save as saveSettings } from "jet-ext/composables/settings";
     import { empty } from "jet-ext/utils";
     import JetSearchInput from "jet-ext/components/JetSearchInput";
     import type { MapObject } from "~/services/types";
@@ -31,18 +39,27 @@
     const show: Ref<boolean> = ref(false),
           searched: Ref<Array>=ref([]);
     
-    useAsyncData('rtx-routes', () => {
-        getroutes().catch(e => {
-            console.log('ERR (routes)', e);
-            $app.msg({
-                        text:`Ошибка загрузки списка маршрутов:<div class="small">${ e.message } ${ e.data || ''}.</div>Пожалуйста обновите страницу ( F5 )`, 
-                        color: 'warning'
+    useAsyncData('rtx-routes', ()=>{
+        getroutes().then(()=>{
+                if ( !empty(settings.local?.lastRoute) ){
+                    searched.value = all.routes.items.filter( (r: MapObject)=> (r.id === settings.local.lastRoute) );
+                    console.log('using last route', settings.local.lastRoute, searched, all.routes);
+                    if ( searched.value.length > 0 ){
+                        all.routes.active = searched.value.at(0);
+                        show.value = false;
+                    }
+                }
+            }).catch(e => {
+                console.log('ERR (routes)', e);
+                $app.msg({
+                            text:`Ошибка загрузки списка маршрутов:<div class="small">${ e.message } ${ e.data || ''}.</div>Пожалуйста обновите страницу ( F5 )`, 
+                            color: 'warning'
+                });
             });
-        });
     });
     
     
-    function search(s){
+    function search(s: string){
         show.value = false;
         if ( empty(s) ){
             searched.value = [];
@@ -64,9 +81,9 @@
         show.value = (searched.value.length > 0);
     };  //search
     
-    
     function use(item: MapObject){
         all.routes.active = item;
+        saveSettings({lastRoute: item.id});
         show.value = false;
     }
     
@@ -86,13 +103,15 @@
             width: calc(100% - 1rem);
             margin-right: 0;
         }
-        & .v-list{
-            &-item{
-                &__prepend{
-                    margin-right: 1rem;
-                }
-                &:not(:last-child){
-                    border-bottom: 1px solid #ccc;
+        &__nav{
+            .v-list {
+                &-item{
+                    &__prepend{
+                        margin-right: 1rem;
+                    }
+                    &:not(:last-child){
+                        border-bottom: 1px solid #ccc;
+                    }
                 }
             }
         }

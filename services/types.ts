@@ -39,7 +39,8 @@ export type MapPoint =  MapObject & {
     ended: boolean,
     typeID?: string,
     twnID?: null|string,
-    radius?:null|number
+    radius?:null|number,
+    distance?:null|number
 };
 export type MapRoute = MapObject & {
     num: number,
@@ -48,9 +49,10 @@ export type MapRoute = MapObject & {
     end:   Date|null,
     routeTypeID: string,
     color?: string,
-    versions?: Array<MapRouteVersion>,
+    versions?: MapRouteVersion[],
     version?: MapRouteVersion,
-    points?: Array<MapPoint>
+    points?: MapPoint[],
+    distance?:null|number
 };
 
 

@@ -3,19 +3,31 @@ declare const $moment: any;
 
 const VERSIO_VIEW_ID = "4929e2c7-eb18-44cc-aa69-15e6dd79660c";  //trSchedules
 const STOPS_VIEW_ID  = "7eff8f4d-78e0-4fc6-a7d0-988670172033";  //trScheduleStops
+import { END_STOP_TYPE } from "./stops";
 
 import { empty } from "jet-ext/utils";
 import { MapType, Direction} from "./types";
 import type { MapRoute, MapPoint, MapRouteVersion } from "./types";
+
+export type RtxVersion = {
+    id: string,
+    regDt: any,
+    routeID: string,
+    stateID: string,
+    stateIDName: string,
+    versionNum: number
+}
 
 export type RtxStop = {
     id:      string,
     arrTime: string | any,
     depTime: string | any,
     stopTime: number,
+    distance?:number,
     pointID: string,
     name:    string,
-    tripNum: number
+    tripNum: number,
+    ended:   boolean
 }
 
 export type RtxTrip = {
@@ -24,17 +36,24 @@ export type RtxTrip = {
     stops: Array<RtxStop>,
     openedAt?: any,
     closedAt?: any,
-    time?: number
+    time?: number,
+    distance?:number
 }
 
-export async function versions(routeId: string): Promise<any[]>{
+export async function versions(routeId: string): Promise<RtxVersion[]>{
     const data = await $app.rpc({
                         type: "core-read",
                         transform: true,
-                        query: `sin2:/v:${ VERSIO_VIEW_ID }?filter=eq(field(".routeId"), param("${ routeId }", "id"))&sort=-.versionNum`
+                        query: `sin2:/v:${ VERSIO_VIEW_ID }?filter=eq(field(".routeId"), param("${ routeId }", "id"))`
+    });
+    data.forEach( (d: any) => {
+        d.regDt = $moment(d.regDt);
     });
     
-    return data;
+    //DESC sorting
+    return data.sort( (v1:RtxVersion, v2:RtxVersion) => {
+        return v1.regDt.isBefore(v2.regDt) ? 1 : -1;
+    } );
 }
 
 export async function stops(sheId: string): Promise<RtxStop[]>{
@@ -44,11 +63,14 @@ export async function stops(sheId: string): Promise<RtxStop[]>{
                         query: `sin2:/v:${ STOPS_VIEW_ID }?filter=eq(field(".scheduleId"), param("${ sheId }", "id"))&sort=.depTime`
     });
     
+    console.log('stops', data);
+    
     data.forEach( (d: any) => {
         d.arrTime = $moment(d.arrTime);
         d.depTime = $moment(d.depTime);
         d.stopTime= d.depTime.diff(d.arrTime, 'minutes');
         d.name    = d.pointIDlocationIDlocName;
+        d.ended   = (END_STOP_TYPE===d.pointIDtypeID);
     });
     
     return data;

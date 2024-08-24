@@ -82,17 +82,17 @@ export class CMapUtils {
     * stops shorting by type
     */
     static splitPoints(route: any){
-        if ( (route.points?.length||0) < 1){
+        if ( !(route.points?.length > 0) ){
             return;
         }
         route.points.forEach( (p: any, n: number) => {
             p.index = n;
         });
-        const ends = route.points.filter( (p:any) => (p.pointTypeId===STOP_TYPES.end) || /^(END)+/.test(p.pointType));
+        const ends = route.points.filter( (p:any) => p.ended );
         route.endStops = ends.length;
         let startStop  = ends.at(0),
             n = (route.endStops < 3) ? route.points.length : ends[1].index;
-
+        console.log('ends ' + ends.length, ends);
         route.points.forEach( (p: any, i: number) => {
             p.direction = ((route.endStops < 3) || (i < n)) ? Direction.forward : Direction.backward;
             if ( p.name ){

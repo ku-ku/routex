@@ -74,28 +74,35 @@
                  class="rtx-shedule">
         <rtx-she-trip v-for="t in trips"
                       :trip="t"
-                      v-on:click="onstop" >
+                      v-on:click="onstop"
+                      v-on:recalc="ontripcalc(t)">
         </rtx-she-trip>
     </v-container>
     <teleport to="body">
         <rtx-she-stop ref="shestop"></rtx-she-stop>
+        <rtx-trip-calc ref="tripcalc"
+                       v-on:calcu="oncalcu"></rtx-trip-calc>
     </teleport>
 </template>
 <script setup lang="ts">
     import { default as all, getroutes } from "~/composables/all";
     import { versions as sheVersions, trips as sheTrips } from "~/services/shedule";
+    import type { RtxTrip } from "~/services/shedule";
+    import type { MapRoute, MapStop } from "~/services/types";
     
     import RtxSheTrip from "~/components/shedule/RtxSheTrip";
     import RtxSheStop from "~/components/shedule/RtxSheStop";
+    import RtxTripCalc from "~/components/shedule/RtxTripCalc";
     
     definePageMeta({
         name: "shedulePage",
         title: "Расписание"
     });
     
-    const shestop = ref(null);
+    const shestop:Ref<RtxSheStop|null> = ref(null),
+         tripcalc:Ref<RtxTripCalc|null> = ref(null);
     
-    const route = computed({
+    const route: Ref<MapRoute> = computed({
         get: ()=>{
             return all.routes.active;
         },
@@ -147,12 +154,12 @@
         }
     });
     
-    function selVersion(v: any){
+    function selVersion(v: any): void{
         version.value = v;
         refreshNuxtData("she-stops");
     }
         
-    function format(d: Date){
+    function format(d: Date): string{
         return $moment(d).format('DD.MM.YYYY');
     }
     
@@ -160,10 +167,22 @@
         useRouter().go(-1);
     }
     
-    function onstop(stop){
+    function onstop(stop: MapStop): void{
         shestop.value.open(stop);
     }
     
+    function ontripcalc(trip: RtxTrip): void{
+        tripcalc.value.open(trip);
+    }   //ontripcalc
+    
+    function oncalcu(trip: RtxTrip): void{
+        let n = trips.value.findIndex( t => t.trip === trip.trip );
+        if ( n < 0 ){
+            trips.value.push(trip);
+        } else {
+            trips.value.splice(n, 1, trip);
+        }
+    }
 </script>
 <style lang="scss">
     .v-toolbar{
@@ -206,7 +225,7 @@
     
     .rtx-shedule{
         display: flex;
-        overflow-x: auto;
+        overflow: auto;
         & .v-card{
             margin-right: 1rem;
         }

@@ -2,7 +2,7 @@ import type { NuxtConfig } from 'nuxt/schema';
 declare const defineNuxtConfig: any;
 
 const isDev = (process.env.NODE_ENV === 'development');
-const _HOST = 'http://192.168.61.244:8080';
+const _HOST = isDev ? 'http://192.168.61.244:8080' : 'http://ac.kih.ru';
 
   
 const config: NuxtConfig = {
@@ -24,7 +24,6 @@ const config: NuxtConfig = {
         },
     },
     css: [
-        'vuetify/lib/styles/main.sass',
         'jet-ext/jet.scss'
     ],
     experimental: {
