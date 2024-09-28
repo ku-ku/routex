@@ -69,3 +69,15 @@
         }
     };
 </script>
+<style lang="scss" scoped>
+    .v-toolbar{
+        &-title {
+            font-size: 0.9rem;
+            line-height: 1.115;
+            flex: 1 1 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+</style>

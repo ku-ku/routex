@@ -38,49 +38,44 @@
                v-on:click="refresh" />
     </v-toolbar>
     <v-container fluid class="rtx-routes__conte">
-        <splitpanes class="default-theme" horizontal>
+        <splitpanes class="default-theme" vertical>
             <pane>
-                <v-data-table class="jet-table"
-                              ref="table"
-                              fixed-header
-                              no-filter
-                              hover
-                              :headers="hdrs"
-                              :items="routes"
-                              :items-per-page="50"
-                              item-value="id"
-                              single-select
-                              show-select
-                              select-strategy="single"
-                              no-data-text="..."
-                              height="100%"
-                              :value-comparator="comparator"
-                              return-object
-                              v-model="selected"
-                              v-on:click:row.stop="select">
-                    <template v-slot:item.data-table-select="{ index, item, toggleSelect, isSelected }">
-                        {{ $bind(item, toggleSelect) }}
-                        <v-icon v-if="isSelected({value:item.id})"
-                                :data-item-index="index"
-                                :data-item-id="item.id"
-                                class="selected">
-                            mdi-menu-right
-                        </v-icon>
-                    </template>
-                    <template v-slot:item.start="{ item }">
-                        {{ format(item.start) }}
-                    </template>
-                </v-data-table>
+                <v-card :loading="pending"
+                        flat
+                        rounded="0">
+                    <v-card-text>
+                        <v-list class="rtx-routes" 
+                                v-if="has('routes')"
+                                return-object
+                                selectable
+                                v-model:selected="selected"
+                                density="compact"
+                                color="primary"
+                                variant="elevated">
+                            <v-list-item v-for="r in routes" class="rtx-route"
+                                         :key="r.id"
+                                         :value="r">
+                                <template v-slot:prepend>
+                                    <div class="rtx-route__num">
+                                        {{ r.code }}
+                                    </div>
+                                    <div class="rtx-route__dt">
+                                        {{ format(r.start) }}
+                                    </div>    
+                                </template>
+                                <template v-slot:title>
+                                    {{ r.name }}
+                                </template>
+                                <div class="rtx-route__meta">
+                                    {{ r.routeTypeIDtypeName }}
+                                </div>
+                            </v-list-item>
+                        </v-list>
+                    </v-card-text>
+                </v-card>
             </pane>
             <pane>
-                <div class="rtx-routes__adds">
-                    <rtx-route-stops :route="active" />
-                </div>    
-                <v-tabs bottom density="compact"
-                        v-model="tab">
-                    <v-tab slim>остановки маршрута</v-tab>
-                    <v-tab slim>перевозчики</v-tab>
-                </v-tabs>
+                <rtx-route-details :route="active" />
             </pane>
         </splitpanes>
     </v-container>
@@ -94,23 +89,14 @@
     import type { MapRoute } from "~/services/types";
     import { default as all, getroutes, delroute as $delroute } from "~/composables/all";
     import JetSearchInput from "jet-ext/components/JetSearchInput";
-    import RtxRouteStops from "~/components/RtxRouteStops";
     import RtxRouteForm from "~/components/route/RtxRouteForm";
+    import RtxRouteDetails from "~/components/route/RtxRouteDetails";
         
-    const table = ref(null),
-       frmRoute = ref(null);
+    const frmRoute = ref(null);
        
-    const hdrs = ref([
-            {title: '№', key: 'code'},
-            {title: 'Маршрут', key: 'name'},
-            {title: 'Тип', key: 'routeTypeIDtypeName'},
-            {title: 'Дата нач.', key: 'start'},
-            {title: 'Дата оконч.', key: 'end'}
-          ]),
-          tab = ref(0),
-          s   = ref(null);
+    const s = ref(null);
     
-    const routes = computed(()=> {
+    const routes: Ref<MapRoute[]> = computed(()=> {
                 if ( empty(s.value) ){
                     return all.routes.items;
                 }
@@ -121,16 +107,10 @@
                     return r.name.toLowerCase().indexOf( s.value.toLowerCase() ) > -1;
                 });
             }),
-          selected = ref([]),           /* table model */
-          active: Ref<MapRoute> = computed(()=>{     /* active route by table model */
-                let n, id = selected.value?.at(0);
-                if ( !id ){
-                    return null;
-                }
-                n = all.routes.items.findIndex( r => r.id === id );
-                return ( n < 0 ) ? null : all.routes.items[n];
+          selected: Ref<MapRoute[]> = ref([]),           /* list model */
+          active: Ref<MapRoute> = computed(()=>{
+              return selected.value.at(0);
           });
-    
     
     const {data, pending, error} = useAsyncData('rtx-routes', async ()=>{
         await getroutes();
@@ -145,43 +125,36 @@
         refreshNuxtData('rtx-routes');
     };
     
-    function comparator(r1, r2): boolean{
-        return (r1||'xxx$xxx')===(r2||'xxx#xxx');
-    };
-    
-    function $bind(item, toggleSelect){
-        item.toggle = toggleSelect;
-        return null;
-    };
-    
     function format( dt: Date|null): string{
         return ( dt ) ? $moment(dt).format("DD.MM.YYYY") : null;
     };
     
     function has(q: string, v?: any): boolean{
         switch(q){
+            case "routes":
+                return routes.value.length > 0;
         }
         return false;
     }   //has
     
     
-    function select(e, { item }){
-        item.toggle({value:item.id});
+    function onroute(r: MapRoute): void{
+        console.log('route', r);
     };
     
     /**
      * Add/edit route
      */
     function doroute(add: boolean){
-        frmRoute.value.open(( add ) ? null : {...active.value});
+        frmRoute.value.open(( add ) ? null : {...selected.value});
     };
     
     function delroute(){
-        if ( !active.value ){
+        if ( !selected.value ){
             return;
         }
         $app.msg({
-                    text: `Удалить выбранный маршрут № ${ active.value.code }. ${ active.value.name }?`,
+                    text: `Удалить выбранный маршрут № ${ selected.value.code }. ${ selected.value.name }?`,
                     location: "top",
                     color: "primary",
                     click_title: "удалить",
@@ -191,7 +164,7 @@
                                 await $delroute(unref(active));
                             } catch(e){
                                 console.log('ERR(del)', e);
-                                $app.msg({text: `Ошибка удаления маршрута: ${ e.message }<br /> <small>${ e.data || ''}</small>`,
+                                $app.msg({text: `Ошибка удаления маршрута: ${ e.message }<br /><small>${ e.data || ''}</small>`,
                                          color: "warning"});
                             }
                         }
@@ -202,7 +175,7 @@
     
     watch(error, ()=>{
         if ( error.value ){
-            $app.msg({text: `Ошибка получения списка маршрутов: ${ error.value.message }<br /> <small>${ error.value.data || ''}</small>`,
+            $app.msg({text: `Ошибка получения списка маршрутов: ${ error.value.message }<br /><small>${ error.value.data || ''}</small>`,
                      color: "warning"});
         }
     });
@@ -225,24 +198,32 @@
             max-height: calc(100dvh - 80px) !important;
             padding: 0;
             overflow: hidden;
-            & .v-data-table{
-                &__tr:has(.v-icon.selected){
-                    background: $selected;
-                    & > td {
-                        background: $selected !important;
-                        color: white;
-                    }
-                }
-                &__td {
-                    & .v-selection-control{
-                        display: none;
-                    }
-                }
-                &__selected{
-                    background: $selected;
-                    & > td {
-                        background: $selected !important;
-                        color: white;
+            & .v-card {
+                height: 100%;
+                & .v-list{
+                    &-item{
+                        &__prepend{
+                            flex-direction: column;
+                            margin-right: 0.5rem;
+                        }
+                        &:not(:last-child){
+                            border-bottom: 1px solid #ddd;
+                        }
+                        .rtx-route{
+                            &__num{
+                                font-size: 1rem;
+                            }
+                            &__dt, &__meta{
+                                font-size: 0.75rem;
+                                color: grey;
+                            }
+                        }
+                        &--active{
+                            & .rtx-route__dt,
+                            & .rtx-route__meta{
+                                color: rgba(255,255,255, 0.75);
+                            }
+                        }
                     }
                 }
             }

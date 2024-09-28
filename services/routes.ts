@@ -5,6 +5,7 @@ declare const $turf: any;
 const ROUTES_VIEW_ID = "63cb4030-8bd7-40c5-820e-e7613769a8cc";
 const VERSIO_VIEW_ID = "6a910f42-4f28-4c25-8960-ca1190541bd5";
 const POINTS_VIEW_ID = "91e8c86a-d42e-441d-9d59-c8a2f60ffc20";
+const NMCK_VIEW_ID   = "2d1898bb-6d68-4ed1-a25c-5de5716f403d";  //trContractPrices
 
 import { empty } from "jet-ext/utils";
 import { MapType, Direction} from "./types";
@@ -149,4 +150,21 @@ export async function delRoute(route: MapRoute): Promise<boolean>{
     }
     
     return true;
-}
+};
+
+export async function getRouteDetails(route: MapRoute, q: string): Promise<any>{
+    const viewId = (q==="nmck") ? NMCK_VIEW_ID : null;
+    const query = `sin2:/v:${ viewId }?filter=eq(field(".routeId"), param("${ route.id }", "id")`;
+    const rpc = {
+                    type: "core-read",
+                    transform: true,
+                    query
+    };
+    let res = await $app.rpc(rpc);
+    
+    if (res.error){
+        throw res.error;
+    }
+    return res;
+    
+};  //getRouteDetails
