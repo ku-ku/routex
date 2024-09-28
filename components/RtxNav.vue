@@ -32,6 +32,18 @@
                      title="Расписания"
                      :disabled="!has('user')">
         </v-list-item>
+        <v-list-item append-icon="mdi-chevron-right"
+                    prepend-icon="mdi-tune-vertical"
+                    title="Настройки"
+                    :disabled="!has('user')"
+                    to="/settings">
+        </v-list-item>
+        <v-list-item append-icon="mdi-chevron-right"
+                    prepend-icon="mdi-file-document-edit-outline"
+                    title="Контракты"
+                    :disabled="!has('user')"
+                    to="/contracts">
+        </v-list-item>
     </v-list>
 </template>
 <script>
