@@ -1,6 +1,5 @@
 <template>
     <v-form ref="form">
-        <div class="headline mb-4 text-primary">{{ item.name }}</div>
         <v-row>
             <v-col v-for="(col, i) in cols" :key="i" :cols="12/cols" class="text-center text-caption">
                 {{ col.name }}
@@ -15,33 +14,32 @@
                     class="contract_field"
                     :rules="rules"
                     :loading="loading"
-                    :items="item.value.props[j].items"
+                    :items="item.props[j].items"
                     item-title="name"
                     item-value="id"
-                    v-model="values[i][j].value"
-                    @update:focused="on_input($event, j)"/>
+                    v-model="values[i][col.key]"
+                    :readonly="col.values"/>
                 <v-text-field v-if="col.type !== 'id'"
                     variant="outlined" 
                     density="compact" 
                     hide-details 
                     class="contract_field"
-                    v-model="values[i][j].value"
+                    v-model="values[i][col.key]"
                     :rules="rules"
-
-                    @update:focused="on_input($event, j)"/>
+                    :readonly="col.calc"/>
             </v-col>
         </v-row>
         <v-row class="justify-end">
-            <v-btn variant="plain" density="comfortable" icon="mdi-plus-circle-outline" color="primary" @click="on_add" v-tooltip:bottom="'Добавить'"/>
-            <v-btn variant="plain" density="comfortable" icon="mdi-delete-circle-outline" color="primary" @click="on_add" v-tooltip:bottom="'Удалить'"/>
-            <v-btn variant="plain" density="comfortable" icon="mdi-check-circle-outline" color="primary" @click="on_submit" v-tooltip:bottom="'Применить'"/>
+            <v-btn v-if="!item.source" variant="plain" density="comfortable" icon="mdi-plus-circle-outline" color="primary" @click="on_add" v-tooltip:bottom="'Добавить'"/>
+            <v-btn v-if="!item.source" variant="plain" density="comfortable" icon="mdi-delete-circle-outline" color="primary" @click="on_del" v-tooltip:bottom="'Удалить'"/>
+            <v-btn :disabled="!item.var" variant="plain" density="comfortable" icon="mdi-check-circle-outline" color="primary" @click="on_submit" v-tooltip:bottom="'Применить'"/>
         </v-row>
     </v-form>
 </template>
 
 <script setup>
 import useCore from '~/composables/core';
-import { ref, toRef } from "vue";
+import { ref, toRef, watch } from "vue";
 
 const props = defineProps({
     item: {
@@ -50,71 +48,49 @@ const props = defineProps({
     }
 });
 
+const $emit = defineEmits(["update:modelValue"]);
+
 const item = toRef(props.item),
     form = ref(null),
     rules = [
         v => !!v || 'Поле должно быть заполнено',
     ],
     cols = computed(() => {
-        return item.value.value.props;
+        return item.value.props;
     }),
     cols_count = computed(() => {
-        return item.value.value.props.length;
+        return item.value.props.length;
     }),
-    values = ref(null),
-    loading = ref(null);
+    values = computed(() => {
+        return item.value.value;
+    }),
+    loading = ref(null),
+    selected = ref(null);
 
 const { load } = useCore();
-
-onMounted(() => {
-    values.value = item.value.value.value || [];
-    if ( values.value.length == 0 ) {
-        on_add();
-    }
-});
-
-const on_input = async (event, i) => {
-    if ( !event )
-        return;
-    if ( item.value.value.props[i].type !== 'id' )
-        return;
-    if ( item.value.value.props[i].items?.length > 0 )
-        return;
-    loading.value = true;
-    try {
-        const uri = 'sin2:/v:' + item.value.value.props[i].class;
-        const res = await load({uri: uri});
-        const keyCol = res.model.key;
-        const titleCol = res.model.columns.filter(c => c.attributes.asName)[0].id.toLowerCase();
-        const values = [];
-        res.values.map((v) => {
-            values.push({id: v[keyCol], name: v[titleCol]});
-        });
-        item.value.value.props[i].items = values;
-    } catch(e) {
-        console.log(e);
-    } finally {
-        loading.value = false;
-    }
-};
 
 const on_add = async () => {
     const { valid } = await form.value.validate()
     if ( !valid )
         return;
-    const v = [];
+    const v = {};
     cols.value.map((c) => {
-        v.push({name: c.key, value: null})
+        v[c.key] = null;
     });
     values.value.push(v);
 };
 
+const on_del = () => {
+    if ( selected.value > 0 ) {
+        values.value.splice(selected.value, 1);
+    }
+};
+
 const on_submit = async () => {
-    console.log(values);
     const { valid } = await form.value.validate()
     if ( !valid )
         return;
-    //emit(null);
+    $emit('update:modelValue', values.value);
 };
 
 </script>
