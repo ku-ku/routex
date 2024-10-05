@@ -2,19 +2,19 @@
     <v-form ref="form" class="h-100">
         <v-container class="fill-height" fluid>
             <v-row justify = "center" align="center" class="h-100">
-                <v-col cols="6" xs="6" class="fill-height">
+                <v-col cols="3" xs="6" class="fill-height">
                     <v-card class="fill-height" elevation="3">
                         <v-card-text>
-                            <template v-for="(item, i) in parameters" :key="i">
-                                <div class="headline mb-4 text-primary">{{ item.title }}</div>
-                                <jet-input-id v-if="item.value?.type == 'id'" :uri="item.value.uri"
-                                        :type="item.value.type" :name="item.name" v-model="item.value.value" :label="item.value.label" :required="item.value.required" />
-                                <rtx-contracts-tbl v-if="item.value?.type == 'table'" :item="item"/>
+                            <template v-for="(p, i) in params" :key="i">
+                                <div class="headline mb-4 text-primary">{{ p.name }}</div>
+                                <jet-input-id v-if="p.type == 'id'" :uri="p.uri"
+                                        :type="p.type" :name="p.name" v-model="p.value" :label="p.label" :required="p.required" />
+                                <rtx-contracts-tbl v-if="p.type == 'table'" :item="p" v-model="p.value" @update:modelValue="_next()"/>
                             </template>
                         </v-card-text>
                     </v-card>
                 </v-col>
-                <v-col cols="6" xs="6" class="fill-height">
+                <v-col cols="9" xs="6" class="fill-height">
                     <v-card class="fill-height" elevation="3" v-if="route">
                         <v-card-title>
                             {{ route['trroutes.routecode'] }} {{ route['trroutes.routename'] }}
@@ -29,6 +29,18 @@
                                 </v-col>
                             </v-row>
                         </v-card-subtitle>
+                        <v-card-text>
+                            <template v-for="(p, i) in calculated" :key="i">
+                                <div class="headline mb-4 text-primary">{{ p.name }}</div>
+                                <jet-input-id v-if="p.type == 'id'" :uri="p.uri"
+                                        :type="p.type" :name="p.name" v-model="p.value" :label="p.label" :required="p.required" />
+                                <rtx-contracts-tbl v-if="p.type == 'table'" :item="p" v-model="p.value" @update:modelValue="_next()"/>
+                            </template>
+                        </v-card-text>
+                        <v-card-actions class="justify-end">
+                            <v-btn variant="outlined" color="grey-darken-2">Отмена</v-btn>
+                            <v-btn variant="outlined" color="primary">Сохранить</v-btn>
+                        </v-card-actions>
                     </v-card>
                 </v-col>
             </v-row>
@@ -55,28 +67,48 @@ const IDS = {
     NORM_URI      : 'sin2:/v:b247a253-baab-4cd4-a413-f57b7c5fb415'
 }
 
-const model = ref([
+const nodes  = ref([
         {
-            num: 1,
-            name: 'routeID',
-            title: 'Выберите маршрут',
-            value: {type: 'id', uri : IDS.ROUTES_URI, required: true, label: 'Маршрут', value: null}
+            key: 'routeID',
+            name: 'Выберите маршрут',
+            type: 'id',
+            uri: IDS.ROUTES_URI,
+            required: true,
+            label: 'Маршрут',
+            var: true,
+            value: null
         }
     ]),
-    result = {},
-    algorytm = ref(null);
+    result   = {
+        sum: (node, attr) => {
+            if ( !Array.isArray(result[node]) )
+                return result[node];
+            let s = 0;
+            result[node].map((n) => {
+                s = s + Number(n[attr]);
+            });
+            return s;
+        }
+    },
+    template = ref(null),
+    params = computed(() => {
+        return nodes.value.filter((node) => node.var);
+    }),
+    calculated = computed(() => {
+        return nodes.value.filter((node) => !node.var);
+    });
 
 const { load } = useCore();
 
 const tenant = profile.tenant.id;
 
-const { pending, error } = useAsyncData( 'algorytms', async() => {
+const { pending, error } = useAsyncData( 'template', async() => {
     if ( !result.typeID ) {
         return;
     }
     const uri = `${IDS.CTALG_URI}?filter=eq(field(".typeID"), param("${result.typeID}", "id"))`;
     const res = await load({uri: uri});
-    algorytm.value = JSON.parse(res.values[0]['trpricealgorytms.typealgorytm']);
+    template.value = JSON.parse(res.values[0]['trpricealgorytms.typealgorytm']);
 });
 
 const { data: route } = useAsyncData( 'route', async() => {
@@ -87,29 +119,66 @@ const { data: route } = useAsyncData( 'route', async() => {
     return res.values[0];
 });
 
-const { data: normatives } = useAsyncData( 'standards', async() => {
+const { data: normatives } = useAsyncData( 'normatives', async() => {
     const uri = IDS.NORM_URI;
     const res = await load({uri: uri});
     return res.values;
 });
 
 const _next = async () => {
-    if ( !algorytm.value ) {
-        await refreshNuxtData('algorytms');
+    if ( !template.value ) {
+        await refreshNuxtData('template');
     }
-    if ( algorytm.value.length > 0 ) {
-        model.value.push(algorytm.value[0]);
-        algorytm.value.splice(0, 1);
+    if ( template.value.length > 0 ) {
+        const v = template.value[0];
+        if ( v.type == 'table' ) {
+            v.props.map(async (p) => {
+                if ( p.type == 'id' ) {
+                    const res = await load({uri: 'sin2:/v:' + p.class});
+                    const keyCol = res.model.key;
+                    const titleCol = res.model.columns.filter(c => c.attributes.asName)[0].id.toLowerCase();
+                    const values = [];
+                    res.values.map((val) => {
+                        values.push({id: val[keyCol], name: val[titleCol]});
+                    });
+                    p.items = values;
+                }
+            });
+            if ( v.source ) {
+                const src = result[v.source];
+                v.value = [];
+                src.map((s) => {
+                    const val = {};
+                    v.props.map( (p) => {
+                        val[p.key] = (p.values) ? s[p.values] : null;
+                    });
+                    v.value.push(val);
+                });
+            } else {
+                v.value = [{}];
+                v.props.map( (p) => {
+                    v.value[0][p.key] = null;
+                });
+            }
+        }
+        nodes.value.push(v);
+        template.value.splice(0, 1);
+        if ( !v.var )
+            _next();
     };
 };
 
 const _route = () => {
-    if ( model.value.filter((m) => m.name == 'typeID').length == 0 ) {
-        model.value.push({
-            num: 2,
-            name: 'typeID',
-            title: 'Выберите тип контракта',
-            value: {type: 'id', uri : IDS.CTYPES_URI, required: true, label: 'Тип контракта', value: null}
+    if ( nodes.value.filter((m) => m.key == 'typeID').length == 0 ) {
+        nodes.value.push({
+            key: 'typeID',
+            name: 'Выберите тип контракта',
+            type: 'id',
+            uri: IDS.CTYPES_URI,
+            required: true,
+            label: 'Тип контракта',
+            var: true,
+            value: null
         });
     }
     refreshNuxtData('route');
@@ -117,29 +186,44 @@ const _route = () => {
 
 const _calc = () => {
     Object.keys(result).map((key) => {
-        const item = model.value.filter((m) => m.name == key);
-        if ( item[0].formula ) {
-            item[0].formula.value = eval(item[0].formula.var);
+        let node = nodes.value.filter((m) => m.key == key);
+        if ( node.length == 0 )
+            return;
+        node = node[0];
+        if ( node.calc ) {
+            node.value = eval(node.calc);
+            return;
         }
+        if ( !node.props ) 
+            return;
+        node.props.map((p) => {
+            if ( p.calc ) {
+                for (var i = 0; i < result[key].length; i++ ) {
+                    const val = eval(p.calc);
+                    if ( !isNaN(val) ) 
+                        result[key][i][p.key] = val;
+                }
+            }
+        });
     });
-    //console.log(result);
 };
 
-const _normative = (code) => {
-    return normatives.filter((n) => n['trstandards.stcode'] == code);
+const _normative = (code, cls, fuel) => {
+    let ngroup = normatives.value.filter((n) => n['trstandards.stcode'] == code);
+    if ( cls )
+        ngroup = ngroup.filter((n) => n['trstandardvalues.stvcid'] == cls);
+    if ( fuel )
+        ngroup = ngroup.filter((n) => n['trstandardvalues.stftid'] == fuel);
+    return ngroup[0]['trstandardvalues.stvalue'];
 }
 
-const parameters = computed(() => {
-    return model.value.filter((m) => m.value);
-});
-
-watch(model.value, (newValue) => {
+watch(nodes.value, (newValue) => {
     const old = { ...result };
     newValue.map((v) => {
-        result[v.name] = v.value?.value || v.formula?.value;
+        result[v.key] = v.value || v.formula?.value;
     });
     if ( old.routeID !== result.routeID ) {
-        _route();
+        _route();       
     } else if ( old.typeID !== result.typeID ) {
         _next();
     } else {
