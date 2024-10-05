@@ -64,6 +64,7 @@ export default defineNuxtPlugin({
             if (settings.local.tokens?.access){
                 if ( !getProfile("has-subject") ){
                     preauth().then( async e => {
+                        console.log('preauth', e);
                     }).catch( e => {
                         console.log('ERR (pre-auth)', e);
                     });

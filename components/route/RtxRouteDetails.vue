@@ -62,6 +62,7 @@
                     </template>
                     <div class="text-muted" v-html="i.name"</div>    
                     <template v-slot:append>
+                        {{ getval(i) }}
                     </template>
                 </v-list-item>
             </v-list>
@@ -74,19 +75,37 @@
 <script setup lang="ts">
     import { ref, toRef, watch, onMounted } from "vue";
     import type { MapRoute } from "~/services/types";
-    import { indiParts } from "~/services/indics";
+    import { indiParts, getContraValues } from "~/services/indics";
     import { getRouteDetails } from "~/services/routes";
     import RtxRouteIndics from "~/components/route/RtxRouteIndics";
     
+    const instance = getCurrentInstance();
+            
     const props = defineProps<{route?: MapRoute}>();
     
-    const route = toRef(props, "route"),
-          indics= ref(null);
+    const route  = toRef(props, "route"),
+          /**
+           * 
+           */  
+          indics: Ref<RtxRouteIndics|null> = ref(null),
+          /**
+           * All contracts by route
+           */
+          contras: Ref<any[]> = ref([]),
+          /**
+           * selected contract
+           */        
+          contra:  Ref<any> = computed(() => contras.value?.at(0)),
+          /**
+           * selected contract values
+           */        
+          values:  Ref<any[]> = ref([]);
     
     const { pending, data, error } = useAsyncData("route-nmck", async ()=>{
         if ( !route.value ){
             return null;
         }
+        contras.value = [];
         let res = await getRouteDetails(route.value, "nmck");
         console.log('nmck(data)', res);
         res = res.sort( (r1: any, r2: any)=>{
@@ -94,12 +113,54 @@
         }).at(0);
         if ( res ){
             res.last = $moment(res.regDt).format("DD.MM.YYYY");
-            res.yr   =   $moment(res.startDt).format("YYYY");
+            res.yr   = $moment(res.startDt).format("YYYY");
         }
+        
+        getRouteDetails(route.value, "contra").then( resp => {
+            console.log("contras", resp);
+            contras.value = resp.sort( (r1,r2) => {
+                let d1 = $moment(r1.startDt);
+                return d1.isBefore(r2.startDt) ? 1 : -1;
+            });
+        }).catch(e => {
+            console.log('ERR(contra)', e);
+            $app.msg({text: `Ошибка получения данных контрактов: ${ e.message }<br /><small>${ e.data || ''}</small>`,
+                     color: "warning"});
+        })
         setTimeout(_adjust, 300);
+        
         return res;
     }, {
         watch: [ route ]
+    });
+    
+    useAsyncData("contra-values", async ()=>{
+        values.value = [];
+        if ( !contra.value ){
+            return;
+        }
+        getContraValues(contra.value.ID).then( resp => {
+            console.log('contra-values', resp);
+            const vals = [ ...indiParts ];
+            resp.forEach( r => {
+                let n = vals.findIndex( i => i.key === r.Key );
+                if ( n > -1 ){
+                    vals[n].value = r.keyValue;
+                }
+            });
+            
+            values.value = vals;
+            
+            console.log('contra with indics', indics);
+            
+            //instance.proxy.$forceUpdate();
+        }).catch(e => {
+            $app.msg({text: `Ошибка получения данных расчета контракта: ${ e.message }<br /><small>${ e.data || ''}</small>`,
+                     color: "warning"});
+            console.log('ERR(contra-values)', e);
+        });
+    }, {
+        watch: [ contra ]
     });
     
     watch(error, ()=>{
@@ -118,6 +179,18 @@
         }
         return false;
     }
+    
+    /**
+     * Get a indi-value from active contract
+     */
+    function getval( i: any ): string {
+        if ( values.value?.length > 0 ){
+            let n = values.value.findIndex( $i => $i.id === i.id );
+            let v = (n < 0) ? null : values.value[ n ];
+            return currformat(v?.value);
+        }
+        return '';
+    }   //getval
     
     function _adjust(): void{
         const conte = $(".rtx-route__total");
@@ -187,6 +260,12 @@
                     font-weight: 600;
                     text-align: right;
                     align-items: flex-end;
+                }
+                &__append{
+                    font-weight: 600;
+                    text-align: right;
+                    align-items: flex-end;
+                    padding-left: 1rem;
                 }
             }
         }

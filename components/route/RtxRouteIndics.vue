@@ -9,13 +9,20 @@
 <script setup lang="ts">
 import RtxDialog from "../RtxDialog";
 import RtxIndiClasses from "./indics/RtxIndiClasses";
+import RtxIndiNorms from "./indics/RtxIndiNorms";
 
 const part = ref(null),
       route= ref(null),
       show = ref(false),
       indi = ref(null);
 
-let comp = null;
+let comps = {
+        "norms": RtxIndiNorms,
+        "transport-classes": RtxIndiClasses
+    },
+    comp = null;
+
+
 
 const title = computed(()=>{
         let s = (part.value) ?  `${part.value.code} ${part.value.name || part.value.title}` : '';
@@ -29,11 +36,7 @@ const title = computed(()=>{
 function open($route, $part): void{
     route.value = $route;
     part.value  = $part;
-    switch (part.value.id){
-        case 'transport-classes':
-            comp = RtxIndiClasses;
-            break;
-    }
+    comp = comps[part.value.id];
     show.value  = true;
 };
 

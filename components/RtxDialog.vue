@@ -1,6 +1,7 @@
 <template>
     <v-dialog v-model="show"
-              :max-width="1024">
+              :max-width="1024"
+              :min-heigth="420">
         <v-toolbar density="compact"
                    color="primary">
             <v-toolbar-title v-html="title"></v-toolbar-title>
