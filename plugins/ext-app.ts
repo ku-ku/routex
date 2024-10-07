@@ -53,6 +53,7 @@ export default defineNuxtPlugin({
 
         /**
          * After read settins from IDB
+         * -> preaut by saved token
          */
         nuxtApp.onsettings = ()=>{
             if ( !settings.local ){

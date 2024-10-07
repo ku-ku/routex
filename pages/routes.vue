@@ -28,6 +28,15 @@
             </template>
         </v-tooltip>
         <v-divider vertical />
+        <v-tooltip text="перейти к расписанию">
+            <template v-slot:activator="{ props }">
+                <v-btn tile icon="mdi-calendar-month"
+                       size="small"
+                       v-bind="props"
+                       v-on:click="go('shedule')" />
+            </template>
+        </v-tooltip>
+        <v-divider vertical />
         <div style="width:33%">
             <jet-search-input hide-details 
                               light
@@ -179,6 +188,15 @@
                      color: "warning"});
         }
     });
+    
+    function go(q: string): void{
+        switch(q){
+            case "shedule":
+                all.routes.active = active.value;
+                navigateTo({path:"/shedule", query: {id: active.value.id}});
+                break;
+        }
+    }
     
 </script>
 <style lang="scss">
