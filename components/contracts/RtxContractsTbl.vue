@@ -18,7 +18,7 @@
                     item-title="name"
                     item-value="id"
                     v-model="values[i][col.key]"
-                    :readonly="col.values"/>
+                    :readonly="col.values||col.calc"/>
                 <v-text-field v-if="col.type !== 'id'"
                     variant="outlined" 
                     density="compact" 
