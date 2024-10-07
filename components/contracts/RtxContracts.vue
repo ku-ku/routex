@@ -37,10 +37,10 @@
                                 <rtx-contracts-tbl v-if="p.type == 'table'" :item="p" v-model="p.value" @update:modelValue="_next()"/>
                             </template>
                         </v-card-text>
-                        <v-card-actions class="justify-end">
+                        <!--v-card-actions class="justify-end">
                             <v-btn variant="outlined" color="grey-darken-2">Отмена</v-btn>
                             <v-btn variant="outlined" color="primary">Сохранить</v-btn>
-                        </v-card-actions>
+                        </v-card-actions-->
                     </v-card>
                 </v-col>
             </v-row>
@@ -165,6 +165,8 @@ const _next = async () => {
         template.value.splice(0, 1);
         if ( !v.var )
             _next();
+    } else {
+        console.log(nodes);
     };
 };
 
@@ -200,7 +202,7 @@ const _calc = () => {
             if ( p.calc ) {
                 for (var i = 0; i < result[key].length; i++ ) {
                     const val = eval(p.calc);
-                    if ( !isNaN(val) ) 
+                    if ( !!val ) 
                         result[key][i][p.key] = val;
                 }
             }
@@ -208,12 +210,15 @@ const _calc = () => {
     });
 };
 
-const _normative = (code, cls, fuel) => {
+const _normative = (code, cls, fuel, capacity) => {
     let ngroup = normatives.value.filter((n) => n['trstandards.stcode'] == code);
     if ( cls )
         ngroup = ngroup.filter((n) => n['trstandardvalues.stvcid'] == cls);
     if ( fuel )
         ngroup = ngroup.filter((n) => n['trstandardvalues.stftid'] == fuel);
+    if ( capacity )
+        ngroup = ngroup.filter((n)=> (n['trstandardvalues.mincapacity'] <= capacity || !n['trstandardvalues.mincapacity']) 
+            && (n['trstandardvalues.maxcapacity'] >= capacity || !n['trstandardvalues.maxcapacity']));
     return ngroup[0]['trstandardvalues.stvalue'];
 }
 
