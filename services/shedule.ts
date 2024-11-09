@@ -3,6 +3,8 @@ declare const $moment: any;
 
 const VERSIO_VIEW_ID = "4929e2c7-eb18-44cc-aa69-15e6dd79660c";  //trSchedules
 const STOPS_VIEW_ID  = "7eff8f4d-78e0-4fc6-a7d0-988670172033";  //trScheduleStops
+const CLDR_VIEW_ID   = "6c274b47-6ef8-409c-9f6a-e0f813abec83";  //trCalendar
+
 import { END_STOP_TYPE } from "./stops";
 
 import { empty } from "jet-ext/utils";
@@ -107,3 +109,17 @@ export async function trips(sheId: string): Promise<RtxTrip[]>{
     return _trips;
 };
             
+export async function calendar(month: number, yr: number): Promise<any[]>{
+    let m = $moment([yr, month, 1]);
+    let d1 = m.toDate().getTime();
+    m = m.add(1, "months").add(-1, "days");
+    let d2 = m.toDate().getTime();
+    
+    const data: any[] = await $app.rpc({
+                        type: "core-read",
+                        transform: true,
+                        query: `sin2:/v:${ CLDR_VIEW_ID }?filter=and(gte(field(".calDay"), param(${ d1 }l, "date")),lte(field(".calDay"), param(${ d2 }l, "date")))`
+    });
+    
+    return data;
+}

@@ -14,8 +14,8 @@
                         </v-card-text>
                     </v-card>
                 </v-col>
-                <v-col cols="9" xs="6" class="fill-height">
-                    <v-card class="fill-height" elevation="3" v-if="route">
+                <v-col cols="9" xs="6" class="fill-height details">
+                    <v-card elevation="3" v-if="route">
                         <v-card-title>
                             {{ route['trroutes.routecode'] }} {{ route['trroutes.routename'] }}
                         </v-card-title>
@@ -210,7 +210,7 @@ const _calc = () => {
     });
 };
 
-const _normative = (code, cls, fuel, capacity) => {
+function _normative(code, cls, fuel, capacity){
     let ngroup = normatives.value.filter((n) => n['trstandards.stcode'] == code);
     if ( cls )
         ngroup = ngroup.filter((n) => n['trstandardvalues.stvcid'] == cls);
@@ -220,7 +220,9 @@ const _normative = (code, cls, fuel, capacity) => {
         ngroup = ngroup.filter((n)=> (n['trstandardvalues.mincapacity'] <= capacity || !n['trstandardvalues.mincapacity']) 
             && (n['trstandardvalues.maxcapacity'] >= capacity || !n['trstandardvalues.maxcapacity']));
     return ngroup[0]['trstandardvalues.stvalue'];
-}
+};
+
+window["_normative"] = _normative;
 
 watch(nodes.value, (newValue) => {
     const old = { ...result };
@@ -236,3 +238,14 @@ watch(nodes.value, (newValue) => {
     }
 });
 </script>
+<style lang="scss">
+    .details{
+        & .v-card {
+                &-text{
+                height: calc(100dvh - 148px);
+                overflow-y: auto;
+                padding-bottom: 10rem;
+            }
+        }
+    }
+</style>    

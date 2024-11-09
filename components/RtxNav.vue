@@ -33,6 +33,12 @@
                      :disabled="!has('user')">
         </v-list-item>
         <v-list-item append-icon="mdi-chevron-right"
+                    prepend-icon="mdi-calendar"
+                    title="Календарь"
+                    :disabled="!has('user')"
+                    to="/calendar">
+        </v-list-item>
+        <v-list-item append-icon="mdi-chevron-right"
                     prepend-icon="mdi-tune-vertical"
                     title="Настройки"
                     :disabled="!has('user')"
