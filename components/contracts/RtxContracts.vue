@@ -1,54 +1,60 @@
 <template>
-    <v-form ref="form" class="h-100">
-        <v-container class="fill-height" fluid>
-            <v-row justify = "center" align="center" class="h-100">
-                <v-col cols="3" xs="6" class="fill-height">
-                    <v-card class="fill-height" elevation="3">
-                        <v-card-text>
-                            <template v-for="(p, i) in params" :key="i">
-                                <div class="headline mb-4 text-primary">{{ p.name }}</div>
-                                <jet-input-id v-if="p.type == 'id'" :uri="p.uri"
-                                        :type="p.type" :name="p.name" v-model="p.value" :label="p.label" :required="p.required" />
-                                <rtx-contracts-tbl v-if="p.type == 'table'" :item="p" v-model="p.value" @update:modelValue="_next()"/>
-                            </template>
-                        </v-card-text>
-                    </v-card>
-                </v-col>
-                <v-col cols="9" xs="6" class="fill-height details">
-                    <v-card elevation="3" v-if="route">
-                        <v-card-title>
-                            {{ route['trroutes.routecode'] }} {{ route['trroutes.routename'] }}
-                        </v-card-title>
-                        <v-card-subtitle>
-                            <v-row>
-                                <v-col>Протяженность: {{ route['trroutes.routelength'] }} км. </v-col>
-                                <v-col cols="3">
-                                    <v-btn class="justify-end" variant="flat" size="small" append-icon="mdi-map" color="primary" @click="to_map(vc)">
-                                        На карте
-                                    </v-btn>
-                                </v-col>
-                            </v-row>
-                        </v-card-subtitle>
-                        <v-card-text>
-                            <template v-for="(p, i) in calculated" :key="i">
-                                <div class="headline mb-4 text-primary">{{ p.name }}</div>
-                                <jet-input-id v-if="p.type == 'id'" :uri="p.uri"
-                                        :type="p.type" :name="p.name" v-model="p.value" :label="p.label" :required="p.required" />
-                                <rtx-contracts-tbl v-if="p.type == 'table'" :item="p" v-model="p.value" @update:modelValue="_next()"/>
-                            </template>
-                        </v-card-text>
-                        <!--v-card-actions class="justify-end">
-                            <v-btn variant="outlined" color="grey-darken-2">Отмена</v-btn>
-                            <v-btn variant="outlined" color="primary">Сохранить</v-btn>
-                        </v-card-actions-->
-                    </v-card>
-                </v-col>
-            </v-row>
-        </v-container>
-    </v-form>
+    <v-container class="fill-height pa-0 rx-contra" fluid>
+        <splitpanes class="fill-height default-theme">
+            <pane min-size="20" size="25">
+                <v-card flat tile>
+                    <v-card-text>
+                        <template v-for="(p, i) in params" :key="i">
+                            <div class="headline text-primary">{{ p.name }}</div>
+                            <jet-input-id v-if="p.type == 'id'" :uri="p.uri"
+                                    :type="p.type" :name="p.name" v-model="p.value" :label="p.label" :required="p.required" />
+                            <rtx-contracts-tbl v-if="p.type == 'table'" 
+                                               :item="p" 
+                                               v-model="p.value" 
+                                               @update:modelValue="_next()"/>
+                        </template>
+                    </v-card-text>
+                </v-card>
+            </pane>
+            <pane>
+                <v-card v-if="route" 
+                        class="details"
+                        flat tile>
+                    <v-card-title>
+                        {{ route['trroutes.routecode'] }} {{ route['trroutes.routename'] }}
+                    </v-card-title>
+                    <v-card-subtitle>
+                        <v-row>
+                            <v-col>Протяженность: {{ route['trroutes.routelength'] }} км. </v-col>
+                            <v-col cols="3">
+                                <v-btn class="justify-end" variant="flat" size="small" append-icon="mdi-map" color="primary" @click="to_map(vc)">
+                                    На карте
+                                </v-btn>
+                            </v-col>
+                        </v-row>
+                    </v-card-subtitle>
+                    <v-card-text>
+                        <template v-for="(p, i) in calculated" :key="i">
+                            <div class="headline text-primary">{{ p.name }}</div>
+                            <jet-input-id v-if="p.type == 'id'" 
+                                          :uri="p.uri"
+                                          :type="p.type" :name="p.name" 
+                                          v-model="p.value" 
+                                          :label="p.label" 
+                                          :required="p.required" />
+                            <rtx-contracts-tbl v-if="p.type == 'table'" :item="p" v-model="p.value" @update:modelValue="_next()"/>
+                        </template>
+                    </v-card-text>
+                </v-card>
+            </pane>
+        </splitpanes>
+    </v-container>
 </template>
 
 <script setup>
+import { Splitpanes, Pane } from 'splitpanes';
+import 'splitpanes/dist/splitpanes.css';
+
 import useCore from '~/composables/core';
 import { profile } from 'jet-ext/composables/profile';
 
@@ -65,7 +71,7 @@ const IDS = {
     CTALG_URI     :  'sin2:/v:0c275166-5db8-4c5e-8672-75341e4fba77',
     FULLROUTES_URI: 'sin2:/v:63cb4030-8bd7-40c5-820e-e7613769a8cc',
     NORM_URI      : 'sin2:/v:b247a253-baab-4cd4-a413-f57b7c5fb415'
-}
+};
 
 const nodes  = ref([
         {
@@ -84,7 +90,7 @@ const nodes  = ref([
             if ( !Array.isArray(result[node]) )
                 return result[node];
             let s = 0;
-            result[node].map((n) => {
+            result[node].forEach( n => {
                 s = s + Number(n[attr]);
             });
             return s;
@@ -92,10 +98,10 @@ const nodes  = ref([
     },
     template = ref(null),
     params = computed(() => {
-        return nodes.value.filter((node) => node.var);
+        return nodes.value.filter( node => node.var);
     }),
     calculated = computed(() => {
-        return nodes.value.filter((node) => !node.var);
+        return nodes.value.filter( node => !node.var);
     });
 
 const { load } = useCore();
@@ -131,14 +137,14 @@ const _next = async () => {
     }
     if ( template.value.length > 0 ) {
         const v = template.value[0];
-        if ( v.type == 'table' ) {
-            v.props.map(async (p) => {
-                if ( p.type == 'id' ) {
+        if ( v.type === 'table' ) {
+            v.props.forEach(async p => {
+                if ( p.type === 'id' ) {
                     const res = await load({uri: 'sin2:/v:' + p.class});
                     const keyCol = res.model.key;
                     const titleCol = res.model.columns.filter(c => c.attributes.asName)[0].id.toLowerCase();
                     const values = [];
-                    res.values.map((val) => {
+                    res.values.forEach( val => {
                         values.push({id: val[keyCol], name: val[titleCol]});
                     });
                     p.items = values;
@@ -147,16 +153,16 @@ const _next = async () => {
             if ( v.source ) {
                 const src = result[v.source];
                 v.value = [];
-                src.map((s) => {
+                src.forEach( s => {
                     const val = {};
-                    v.props.map( (p) => {
+                    v.props.forEach( p => {
                         val[p.key] = (p.values) ? s[p.values] : null;
                     });
                     v.value.push(val);
                 });
             } else {
                 v.value = [{}];
-                v.props.map( (p) => {
+                v.props.forEach( p => {
                     v.value[0][p.key] = null;
                 });
             }
@@ -171,7 +177,7 @@ const _next = async () => {
 };
 
 const _route = () => {
-    if ( nodes.value.filter((m) => m.key == 'typeID').length == 0 ) {
+    if ( nodes.value.filter( m => m.key == 'typeID').length == 0 ) {
         nodes.value.push({
             key: 'typeID',
             name: 'Выберите тип контракта',
@@ -187,9 +193,9 @@ const _route = () => {
 };
 
 const _calc = () => {
-    Object.keys(result).map((key) => {
-        let node = nodes.value.filter((m) => m.key == key);
-        if ( node.length == 0 )
+    Object.keys(result).forEach( key => {
+        let node = nodes.value.filter( m => m.key == key);
+        if ( node.length === 0 )
             return;
         node = node[0];
         if ( node.calc ) {
@@ -211,22 +217,26 @@ const _calc = () => {
 };
 
 function _normative(code, cls, fuel, capacity){
-    let ngroup = normatives.value.filter((n) => n['trstandards.stcode'] == code);
-    if ( cls )
-        ngroup = ngroup.filter((n) => n['trstandardvalues.stvcid'] == cls);
-    if ( fuel )
-        ngroup = ngroup.filter((n) => n['trstandardvalues.stftid'] == fuel);
-    if ( capacity )
-        ngroup = ngroup.filter((n)=> (n['trstandardvalues.mincapacity'] <= capacity || !n['trstandardvalues.mincapacity']) 
+    let g, ngroup = normatives.value.filter( n => n['trstandards.stcode'] == code);
+    if ( cls ) {
+        ngroup = ngroup.filter( n => n['trstandardvalues.stvcid'] == cls);
+    }
+    if ( fuel ){
+        ngroup = ngroup.filter( n => n['trstandardvalues.stftid'] == fuel);
+    }
+    if ( capacity ){
+        ngroup = ngroup.filter( n=> (n['trstandardvalues.mincapacity'] <= capacity || !n['trstandardvalues.mincapacity']) 
             && (n['trstandardvalues.maxcapacity'] >= capacity || !n['trstandardvalues.maxcapacity']));
-    return ngroup[0]['trstandardvalues.stvalue'];
+    }
+    g = ngroup.at(0);
+    return g ? g['trstandardvalues.stvalue'] : null;
 };
 
 window["_normative"] = _normative;
 
 watch(nodes.value, (newValue) => {
     const old = { ...result };
-    newValue.map((v) => {
+    newValue.forEach( v => {
         result[v.key] = v.value || v.formula?.value;
     });
     if ( old.routeID !== result.routeID ) {
@@ -239,12 +249,30 @@ watch(nodes.value, (newValue) => {
 });
 </script>
 <style lang="scss">
-    .details{
-        & .v-card {
+    .rx-contra{
+        & .splitpanes{
+            height: 100%;
+            &__pane {
+                height: 100%;
+                & .v-card{
+                    height: 100%;
+                }
+            }
+        }
+        & .headline{
+            margin: 1rem 0 0.5rem 0;
+        }
+        & .details{
+            & .v-card {
+                &-subtitle{
+                    padding-bottom: 0.5rem;
+                    border-bottom: 1px solid #efefef;
+                }
                 &-text{
-                height: calc(100dvh - 148px);
-                overflow-y: auto;
-                padding-bottom: 10rem;
+                    height: calc(100dvh - 148px);
+                    overflow-y: auto;
+                    padding-bottom: 10rem;
+                }
             }
         }
     }
