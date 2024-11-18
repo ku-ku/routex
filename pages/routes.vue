@@ -28,20 +28,33 @@
             </template>
         </v-tooltip>
         <v-divider vertical />
-        <v-tooltip text="перейти к расписанию">
+        <v-menu :disabled="!active">
             <template v-slot:activator="{ props }">
-                <v-btn tile icon="mdi-calendar-month"
+                <v-btn tile icon="mdi-adjust"
                        size="small"
-                       v-bind="props"
-                       v-on:click="go('shedule')" />
+                       v-bind="props" />
             </template>
-        </v-tooltip>
+            <v-list>
+                <v-list-item title="перейти к расписанию"
+                             prepend-icon="mdi-calendar-month"
+                             v-on:click="go('shedule')" />
+                <v-list-item title="открыть на карте"
+                             prepend-icon="mdi-map-legend"
+                             v-on:click="go('map')" />
+            </v-list>    
+        </v-menu>
         <v-divider vertical />
-        <div style="width:33%">
+        <div style="width:25%">
             <jet-search-input hide-details 
                               light
                               v-on:search = "s = $event" />
-        </div>    
+        </div>
+        <div class="rtx-title">
+            <v-badge :content="has('routes') ? routes.length : ''"
+                     inline>
+                Маршруты
+            </v-badge>
+        </div>
         <v-spacer />
         <v-btn tile icon="mdi-reload"
                v-on:click="refresh" />
@@ -96,7 +109,7 @@
     import { Splitpanes, Pane } from 'splitpanes';
     import { empty } from "jet-ext/utils";
     import type { MapRoute } from "~/services/types";
-    import { default as all, getroutes, delroute as $delroute } from "~/composables/all";
+    import { default as all, getroutes, delroute as $delroute, getroutepoints } from "~/composables/all";
     import JetSearchInput from "jet-ext/components/JetSearchInput";
     import RtxRouteForm from "~/components/route/RtxRouteForm";
     import RtxRouteDetails from "~/components/route/RtxRouteDetails";
@@ -189,8 +202,17 @@
         }
     });
     
-    function go(q: string): void{
+    async function go(q: string): void{
         switch(q){
+            case "map":
+                const r = active.value;
+                if ( !(r.points?.length > 0) ){
+                    await getroutepoints(r);
+                }
+                console.log('route(active)', r);
+                all.routes.active = r;
+                navigateTo({path:"/", query: {id: r.id}});
+                break;
             case "shedule":
                 all.routes.active = active.value;
                 navigateTo({path:"/shedule", query: {id: active.value.id}});
@@ -209,6 +231,9 @@
         & .v-divider {
             margin: 0 0.5rem;
         }
+        & .rtx-title{
+            margin: 0 1rem;
+        }
     }
     .rtx-routes{
         &__conte{
@@ -218,6 +243,10 @@
             overflow: hidden;
             & .v-card {
                 height: 100%;
+                &-text{
+                    height: 100%;
+                    overflow-y: auto;
+                }
                 & .v-list{
                     &-item{
                         &__prepend{

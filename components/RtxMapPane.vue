@@ -356,6 +356,7 @@
             border-radius: 6px;
             box-shadow: 0 2px 6px rgba(0,0,0, .33);
             & .v-toolbar{
+                max-width: 540px;
                 &-title{
                     font-size: 0.9rem;
                     font-weight: 600;

@@ -61,6 +61,7 @@ export default function useOrm() {
                 result.headers = headers;
             }
         } catch (e) {
+            console.log('ERR (model)', e);
             throw {message: 'Error load view model: ' + e};
         }
         return result;
@@ -144,7 +145,7 @@ export default function useOrm() {
             });
             return template;
         } catch(e) {
-            console.log(e);
+            console.log('ERR (template)', e);
         }
     }
 
@@ -160,6 +161,7 @@ export default function useOrm() {
                 result.push(item);
             });
         } catch (e) {
+            console.log('ERR (data)', e);
             throw {message: 'Error load view data: ' + e};
         }
         return result;

@@ -2,7 +2,7 @@
     <v-container fluid class="rtx-main__map">
         <v-menu width="480">
             <template v-slot:activator="{ props }">
-                <v-fab icon="mdi-menu"
+                <v-fab :icon="has('user') ? 'mdi-menu' : 'mdi-account-cancel'"
                        absolute
                        app
                        variant="elevated"

@@ -26,7 +26,7 @@
                     item-title="name"
                     item-value="id"
                     v-model="values[i][col.key]"
-                    :readonly="col.values||col.calc" />
+                    :readonly="col.values || !empty(col.calc)" />
                 <v-text-field v-if="col.type !== 'id'"
                     variant="outlined" 
                     density="compact" 
@@ -34,7 +34,7 @@
                     class="contract_field"
                     v-model="values[i][col.key]"
                     :rules="rules"
-                    :readonly="col.calc"/>
+                    :readonly="!empty(col.calc)"/>
             </div>
         </div>
         <div class="rx-param__actions">
@@ -54,6 +54,7 @@
 <script setup>
 import useCore from '~/composables/core';
 import { ref, toRef, watch } from "vue";
+import { empty } from "jet-ext/utils";
 
 const props = defineProps({
     item: {
@@ -67,7 +68,7 @@ const $emit = defineEmits(["update:modelValue"]);
 const item = toRef(props.item),
     form = ref(null),
     rules = [
-        v => !!v || 'Поле должно быть заполнено',
+        v => !empty(v) || 'Поле должно быть заполнено',
     ],
     cols = computed(() => {
         let props = item.value?.props||[];
@@ -91,8 +92,10 @@ const { load } = useCore();
 
 const on_add = async () => {
     const { valid } = await form.value.validate();
-    if ( !valid )
+    if ( !valid ) {
         return;
+    }
+    
     const v = {};
     cols.value.forEach( c => {
             v[c.key] = null;
@@ -108,8 +111,9 @@ const on_del = () => {
 
 const on_submit = async () => {
     const { valid } = await form.value.validate();
-    if ( !valid )
+    if ( !valid ) {
         return;
+    }
     $emit('update:modelValue', values.value);
 };
 

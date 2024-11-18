@@ -1,7 +1,7 @@
 <template>
     <v-toolbar app>
         <v-btn tile icon="mdi-chevron-left"
-               to="/" />
+               v-on:click="$router.go(-1)" />
         <v-divider vertical />
         <div class="rtx-calendar__period">
             <v-select :items="months"

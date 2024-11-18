@@ -1,6 +1,9 @@
 import jetApp from "jet-ext";
 import { settings } from "jet-ext/composables/settings";
 import { preauth, auth, get as getProfile} from "jet-ext/composables/profile";
+import * as turf from '@turf/turf';
+window["$turf"] = turf;
+
 
 declare const ym: any;
 

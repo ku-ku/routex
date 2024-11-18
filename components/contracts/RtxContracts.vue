@@ -1,17 +1,38 @@
 <template>
+    <v-toolbar density="compact" app>
+        <v-btn tile icon="mdi-chevron-left"
+               to="/" />
+        <v-divider vertical />
+        <v-spacer />
+        <v-btn tile icon="mdi-reload"
+               v-on:click="recalc" />
+    </v-toolbar>
     <v-container class="fill-height pa-0 rx-contra" fluid>
         <splitpanes class="fill-height default-theme">
-            <pane min-size="20" size="25">
+            <pane min-size="20" 
+                  :size="30">
                 <v-card flat tile>
                     <v-card-text>
                         <template v-for="(p, i) in params" :key="i">
-                            <div class="headline text-primary">{{ p.name }}</div>
-                            <jet-input-id v-if="p.type == 'id'" :uri="p.uri"
-                                    :type="p.type" :name="p.name" v-model="p.value" :label="p.label" :required="p.required" />
-                            <rtx-contracts-tbl v-if="p.type == 'table'" 
+                            <div class="rx-contra__title">
+                                {{ p.name }}
+                                <v-btn size="small"
+                                       tile
+                                       flat
+                                       v-if="/(план\sчас)+/i.test(p.name)"
+                                       icon="mdi-calendar-month"
+                                       to="/calendar"></v-btn>
+                            </div>
+                            <jet-input-id v-if="(p.type == 'id')" 
+                                          :uri="p.uri"
+                                          :type="p.type" 
+                                          :name="p.name" 
+                                          v-model="p.value" 
+                                          :label="p.label" 
+                                          :required="p.required" />
+                            <rtx-contracts-tbl v-if="(p.type == 'table')" 
                                                :item="p" 
-                                               v-model="p.value" 
-                                               @update:modelValue="_next()"/>
+                                               @update:modelValue="_next(p)"/>
                         </template>
                     </v-card-text>
                 </v-card>
@@ -54,9 +75,10 @@
 <script setup>
 import { Splitpanes, Pane } from 'splitpanes';
 import 'splitpanes/dist/splitpanes.css';
-
+import { default as all } from "~/composables/all";
 import useCore from '~/composables/core';
 import { profile } from 'jet-ext/composables/profile';
+import { empty } from 'jet-ext/utils';
 
 import JetInputDate from "jet-ext/components/form/editors/JetInputDate";
 import JetInputId from "jet-ext/components/form/editors/JetInputId";
@@ -73,7 +95,7 @@ const IDS = {
     NORM_URI      : 'sin2:/v:b247a253-baab-4cd4-a413-f57b7c5fb415'
 };
 
-const nodes  = ref([
+const nodes  = reactive([
         {
             key: 'routeID',
             name: 'Выберите маршрут',
@@ -91,18 +113,38 @@ const nodes  = ref([
                 return result[node];
             let s = 0;
             result[node].forEach( n => {
-                s = s + Number(n[attr]);
+                s = s + ( Number.isNaN(n[attr]) ? 0 : Number(n[attr]) );
             });
             return s;
         }
     },
     template = ref(null),
+    node     = ref(null),     //active node in template for calcs
     params = computed(() => {
-        return nodes.value.filter( node => node.var);
+        return nodes.filter( node => node.var );
     }),
     calculated = computed(() => {
-        return nodes.value.filter( node => !node.var);
+        return nodes.filter( node => !node.var);
+    }),
+    routeId = computed({
+        get: () => {
+            let n = nodes.findIndex( $n => ($n.key === "routeID"));
+            return ( n > -1 ) ? nodes.value[n].value : null;
+        },
+        set: val => {
+            let n = nodes.findIndex( $n => ($n.key === "routeID"));
+            if ( n > -1 ){
+                let p = { ...nodes[n] };
+                p.value = val;
+                nodes.splice(n, 1, p);
+            }
+        }
     });
+
+if ( !empty(all.routes.active?.id) ) {
+    routeId.value = all.routes.active.id;
+    _route();
+}
 
 const { load } = useCore();
 
@@ -112,7 +154,7 @@ const { pending, error } = useAsyncData( 'template', async() => {
     if ( !result.typeID ) {
         return;
     }
-    const uri = `${IDS.CTALG_URI}?filter=eq(field(".typeID"), param("${result.typeID}", "id"))`;
+    const uri = `${IDS.CTALG_URI}?filter=eq(field(".typeID"), param("${ result.typeID }", "id"))`;
     const res = await load({uri: uri});
     template.value = JSON.parse(res.values[0]['trpricealgorytms.typealgorytm']);
 });
@@ -131,12 +173,42 @@ const { data: normatives } = useAsyncData( 'normatives', async() => {
     return res.values;
 });
 
-const _next = async () => {
-    if ( !template.value ) {
-        await refreshNuxtData('template');
-    }
-    if ( template.value.length > 0 ) {
-        const v = template.value[0];
+const _next = async (src = null) => {
+    try {
+        if ( !template.value ) {
+            await refreshNuxtData('template');
+            node.value = null;
+        }
+        console.log('template', template.value);
+
+        if ( !(template.value?.length > 0) ){
+            throw new Error('no template');
+        }
+                
+        let v, n, key = src?.key || node.value?.key || null;
+        n = empty(key) ? -1 : template.value.findIndex( t => (t.key === key) );
+        v = template.value.at(n + 1);
+
+/*
+        if ( src ){
+            n = template.value.findIndex( t => t.key === src.key );
+            v.index = n;
+        } else if ( node.value ){
+            n = template.value.findIndex( t => t.key === node.value.key );
+            v = template.value.at(n + 1);
+            v.index = n + 1;
+        } else {
+            v = template.value.at(0);
+            v.index = 0;
+        }
+*/
+        //const v = template.value[0];
+        if ( !v ){
+            console.log("FINISH");
+            return;
+        }
+            
+        console.log('next for', v);
         if ( v.type === 'table' ) {
             v.props.forEach(async p => {
                 if ( p.type === 'id' ) {
@@ -167,18 +239,29 @@ const _next = async () => {
                 });
             }
         }
-        nodes.value.push(v);
-        template.value.splice(0, 1);
-        if ( !v.var )
-            _next();
-    } else {
-        console.log(nodes);
-    };
-};
 
-const _route = () => {
-    if ( nodes.value.filter( m => m.key == 'typeID').length == 0 ) {
-        nodes.value.push({
+        //next active node
+        n = nodes.findIndex( $n => ($n.key === v.key) );
+        if ( n < 0 ){
+            nodes.push(v);
+        } else {
+            nodes.splice(n, 1, v);
+        }
+        node.value = v;
+            
+        //template.value.splice(0, 1);
+        if ( !v.var ){
+            _next();
+        }
+    } catch(e){
+        console.log('ERR(next)', e);
+    }
+};  //_next
+
+function _route(){
+    let n = nodes.findIndex( m => (m.key === 'typeID') );
+    if ( n < 0 ) {
+        nodes.push({
             key: 'typeID',
             name: 'Выберите тип контракта',
             type: 'id',
@@ -188,32 +271,44 @@ const _route = () => {
             var: true,
             value: null
         });
+    } else {
+        //reset calc`s
+        while (nodes.length > n + 1){
+            nodes.splice(nodes.length - 1, 1);
+        }
     }
     refreshNuxtData('route');
-};
+};  //_route
 
 const _calc = () => {
     Object.keys(result).forEach( key => {
-        let node = nodes.value.filter( m => m.key == key);
-        if ( node.length === 0 )
-            return;
-        node = node[0];
-        if ( node.calc ) {
-            node.value = eval(node.calc);
+        let node = nodes.filter( m => m.key === key).at(0);
+        if ( !node ){
+            console.log(`no calc ${ key }`, nodes);
             return;
         }
-        if ( !node.props ) 
-            return;
-        node.props.map((p) => {
-            if ( p.calc ) {
-                for (var i = 0; i < result[key].length; i++ ) {
-                    const val = eval(p.calc);
-                    if ( !!val ) 
-                        result[key][i][p.key] = val;
-                }
+        try {
+            if ( node.calc ) {
+                node.value = eval(node.calc);
+                return;
             }
-        });
+            if ( !node.props ) {
+                return;
+            }
+            node.props.forEach( p => {
+                if ( p.calc ) {
+                    for (var i = 0; i < result[key].length; i++ ) {
+                        const val = eval(p.calc);
+                        if ( !!val ) 
+                            result[key][i][p.key] = val;
+                    }
+                }
+            });
+        } catch(e){
+            console.warn('ERR(calc)', e);
+        }
     });
+    console.log(`calc`, result);
 };
 
 function _normative(code, cls, fuel, capacity){
@@ -234,19 +329,36 @@ function _normative(code, cls, fuel, capacity){
 
 window["_normative"] = _normative;
 
-watch(nodes.value, (newValue) => {
+
+function recalc(){
+    console.log('recalc', nodes);
+    if ( nodes.length > 0) {
+        let last = nodes.at(nodes.value.length - 1);
+        console.log('last value/template', last, template);
+        _calc();
+    }
+};  //recalc
+
+
+watch(nodes, newValue => {
+    console.log('nodes (watch)', nodes);
     const old = { ...result };
+    
     newValue.forEach( v => {
         result[v.key] = v.value || v.formula?.value;
     });
+    
     if ( old.routeID !== result.routeID ) {
         _route();       
-    } else if ( old.typeID !== result.typeID ) {
+    } 
+    
+    if ( old.typeID !== result.typeID){
         _next();
-    } else {
-        _calc();
     }
+        
+    _calc();
 });
+
 </script>
 <style lang="scss">
     .rx-contra{
@@ -259,8 +371,12 @@ watch(nodes.value, (newValue) => {
                 }
             }
         }
-        & .headline{
+        &__title{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin: 1rem 0 0.5rem 0;
+            color: rgb(var(--v-theme-primary));
         }
         & .details{
             & .v-card {
