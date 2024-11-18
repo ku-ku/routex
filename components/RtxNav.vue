@@ -50,6 +50,12 @@
                     :disabled="!has('user')"
                     to="/contracts">
         </v-list-item>
+        <v-list-item append-icon="mdi-chevron-right"
+                    prepend-icon="mdi-bus-clock"
+                    title="Расчет расписания"
+                    :disabled="!has('user')"
+                    to="/schedules">
+        </v-list-item>
     </v-list>
 </template>
 <script>

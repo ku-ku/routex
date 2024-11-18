@@ -175,3 +175,63 @@ export async function getRouteDetails(route: MapRoute, q: string): Promise<any>{
     return res;
     
 };  //getRouteDetails
+
+export async function getRouteDirections(route: string): Promise<any> {
+    const rpc = {
+        type: 'query',
+        transform: true,
+        query: 'dbcb9cc3-dbd8-4bcb-8e37-44cd43d7637e.getDirections',
+        params: {
+            in_routeID: route
+        }
+    }
+    let res = await $app.rpc(rpc);
+
+    if (res.error) {
+        throw res.error;
+    }
+    return res;
+}; //getRouteDirections
+
+export async function calcRouteSchedule(route: string, cnt: number, interval: number, directions: any): Promise<any> {
+    let result: Array<any> = [];
+    let promises: Array<any> = [];
+    directions.forEach( (d: any) => {
+        var startTm = $moment(`01.01.1900 ${d.starttm}`);
+        let i = 1;
+        while ( i <= cnt ) {
+            const rpc = {
+                type: 'query',
+                transform: true,
+                query: '1685b20c-f9e1-4994-b704-2e2547e44d91.trPrepareTrip',
+                params: {
+                    in_route: route,
+                    in_point: d.id,
+                    in_time : startTm.format('YYYY-MM-DD HH:mm')
+                }
+            };
+            ( (v) => {
+                promises.push(
+                    new Promise( async (resolve, reject) => {
+                        const res = await $app.rpc(rpc);
+                        if (res.error) {
+                            throw res.error;
+                        }
+                        result.push({
+                            num: v,
+                            direction: d.id,
+                            starttm: $moment(res[0].deptime).format('HH:mm'),
+                            endtm  : $moment(res[res.length-1].arrtime).format('HH:mm'),
+                            stops: res
+                        });
+                        resolve();
+                    })
+                )
+            })(i);
+            startTm = startTm.add(interval, 'minutes');
+            i++;
+        }
+    });
+    await Promise.all(promises);
+    return result;
+}

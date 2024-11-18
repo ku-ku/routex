@@ -28,6 +28,15 @@
             </template>
         </v-tooltip>
         <v-divider vertical />
+        <v-tooltip text="синхронизировать">
+            <template v-slot:activator="{ props }">
+                <v-btn tile icon="mdi-web-sync"
+                       size="small"
+                       v-bind="props"
+                       v-on:click="dosync()" />
+            </template>
+        </v-tooltip>
+        <v-divider vertical />
         <v-menu :disabled="!active">
             <template v-slot:activator="{ props }">
                 <v-btn tile icon="mdi-adjust"
@@ -102,6 +111,7 @@
         </splitpanes>
     </v-container>
     <rtx-route-form ref="frmRoute" />
+    <rtx-sync ref="frmSync"/>
 </template>
 <script setup lang="ts">
     import { ref, watch } from "vue";
@@ -113,9 +123,11 @@
     import JetSearchInput from "jet-ext/components/JetSearchInput";
     import RtxRouteForm from "~/components/route/RtxRouteForm";
     import RtxRouteDetails from "~/components/route/RtxRouteDetails";
+    import RtxSync from "~/components/RtxSync";
         
     const frmRoute = ref(null);
-       
+    const frmSync = ref(null);
+
     const s = ref(null);
     
     const routes: Ref<MapRoute[]> = computed(()=> {
@@ -171,6 +183,10 @@
         frmRoute.value.open(( add ) ? null : {...selected.value});
     };
     
+    const dosync = () => {
+        frmSync.value.open();
+    };
+
     function delroute(){
         if ( !selected.value ){
             return;

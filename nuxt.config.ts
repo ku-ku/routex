@@ -74,6 +74,10 @@ const config: NuxtConfig = {
             '/static': {
                 target: `${ _HOST }/static`,
                 changeOrigin: true
+            },
+            '/sync': {
+                target: 'http://193.242.149.152:8080/ords/r/eputs',
+                changeOrigin: true
             }
         }
     }
