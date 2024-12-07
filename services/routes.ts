@@ -8,14 +8,14 @@ const POINTS_VIEW_ID = "91e8c86a-d42e-441d-9d59-c8a2f60ffc20";
 const NMCK_VIEW_ID   = "2d1898bb-6d68-4ed1-a25c-5de5716f403d";  //trContractPrices
 const CONTRA_VIEW_ID = 'd2bcf4e0-e996-49b1-9d8f-76aac5a41b4e';  //trContracts
 
-import { empty } from "jet-ext/utils";
+import { empty, uuidv4 } from "jet-ext/utils";
 import { MapType, Direction} from "./types";
 import type { MapRoute, MapPoint, MapRouteVersion } from "./types";
 import { END_STOP_TYPE } from "./stops";
+import { profile } from "jet-ext/composables/profile";
+import { transform } from "ol/proj";
 
 const _re_num = /[^0-9]+/g;
-
-
 
 function _normalize( route: any ): void{
     route.type = MapType.route;
@@ -224,7 +224,7 @@ export async function calcRouteSchedule(route: string, cnt: number, interval: nu
                             endtm  : $moment(res[res.length-1].arrtime).format('HH:mm'),
                             stops: res
                         });
-                        resolve();
+                        resolve(true);
                     })
                 )
             })(i);
@@ -235,3 +235,100 @@ export async function calcRouteSchedule(route: string, cnt: number, interval: nu
     await Promise.all(promises);
     return result;
 }
+
+export async function calcRouteScheduleN(route: string, intervals: any, directions: any): Promise<any> {
+    const dt = $moment().format('YYYY-MM-DD');
+    let result: Array<any> = [];
+    let sch: Array<any> = [];
+    let promises: Array<any> = [];
+    intervals.value.forEach( (i: any) => {
+        i.start = $moment(`${dt} ${i.starttm}`).get('hour')*60 + $moment(`${dt} ${i.starttm}`).get('minute');
+        i.end = $moment(`${dt} ${i.endtm}`).get('hour')*60 + $moment(`${dt} ${i.endtm}`).get('minute');
+    });
+    directions.forEach( (d: any) => {
+        const rpc = {
+            type: 'query',
+            transform: true,
+            query: '1685b20c-f9e1-4994-b704-2e2547e44d91.trPrepareTrip',
+            params: {
+                in_route: route,
+                in_point: d.id,
+                in_time : `${dt} 00:00`
+            }
+        };
+        promises.push(
+            new Promise( async (resolve, reject) => {
+                const res = await $app.rpc(rpc);
+                if (res.error) {
+                    throw res.error;
+                }
+                res.forEach( (r: any) => {
+                    r.start = $moment(`${dt} ${$moment(r.arrtime).format('HH:mm')}`).get('hour')*60 + $moment(`${dt} ${$moment(r.arrtime).format('HH:mm')}`).get('minute');
+                    r.end = $moment(`${dt} ${$moment(r.deptime).format('HH:mm')}`).get('hour')*60 + $moment(`${dt} ${$moment(r.deptime).format('HH:mm')}`).get('minute');
+                });
+                sch.push({
+                    direction: d.id,
+                    stops: res
+                });
+                resolve(true);
+            })
+        );
+    });
+    await Promise.all(promises);
+    directions.forEach( (d: any) => {
+        let loading = true,
+            interval = null,
+            v = 1,
+            start = $moment(`${dt} ${d.starttm}`).get('hour')*60 + $moment(`${dt} ${d.starttm}`).get('minute'),
+            tmp = sch.find( (f: any) => f.direction == d.id );
+        while ( !!loading ) {
+            interval = intervals.value.find((i: any) => i.start <= start && i.end >= start);
+            if ( !interval ) {            
+                loading = false;
+            } else {
+                const stops: Array<any> = [];
+                tmp.stops.forEach( (s: any) => {
+                    stops.push({
+                        distance: s.distance,
+                        pointid: s.pointid,
+                        pointname: s.pointname,
+                        start: start + s.start,
+                        end: start + s.end
+                    });
+                });
+                result.push({
+                    num: v,
+                    direction: d.id,
+                    start: stops[0].start,
+                    end  : stops[stops.length-1].end,
+                    stops: stops
+                });
+                start = start + Number(interval.interval);
+            }
+            v++;
+        }    
+    });
+    return result;
+};
+
+export async function saveSchedule(data: any): Promise<any> {
+    const tenant = profile.tenant.id;
+    const res = await $app.rpc({
+        type: 'query',
+        query: '8bd2aaab-6189-4242-b425-67d384318782.saveSchedule',
+        params: {
+            in_tenantID : tenant, 
+            in_startDt  : $moment(data.startDt).format('YYYY-MM-DD HH:mm:ss'),
+            in_endDt    : $moment(data.endDt).format('YYYY-MM-DD HH:mm:ss'),
+            in_routeID  : data.routeID,
+            in_intervals: data.intervals,
+            in_days     : data.days,
+            in_holiday  : data.holiday,
+            in_schedules: data.schedules
+        }
+    });
+    if (res.error){
+        throw res.error;
+    }    
+    return res;
+};

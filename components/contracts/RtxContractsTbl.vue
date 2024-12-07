@@ -5,7 +5,7 @@
             <div v-for="(col, i) in cols" :key="i" 
                  :style="{width: `calc(100% / ${ cols.length }`}">
                 <template v-if="col.names">
-                    <span v-for="a in col.names">{{ a }}</span>
+                    <span v-for="(a, j) in col.names" :key="j">{{ a }}</span>
                 </template>
                 <template v-else>
                     {{ col.name }}
@@ -32,6 +32,7 @@
                     density="compact" 
                     hide-details 
                     class="contract_field"
+                    :type="col.type"
                     v-model="values[i][col.key]"
                     :rules="rules"
                     :readonly="!empty(col.calc)"/>
