@@ -2,7 +2,13 @@ import { reactive } from "vue";
 import type { MapRoute, MapPoint } from "~/services/types";
 import { routes, routeVersions, routePoints, saveRoute, delRoute } from "~/services/routes";
 
+declare const $app: any;
+
+
 const all = reactive({
+    /** dashboard indicators */
+    indics: null,
+    /** all routes */
     routes: {
         items: [] as MapRoute[],
         active: null as null|MapRoute,
@@ -65,4 +71,21 @@ export async function delroute( route: MapRoute ): Promise<void> {
             all.routes.items.splice(n, 1);
         }
     }
+}
+
+export async function getindics(): Promise<any>{
+    if (
+            ( !all.indics )
+          ||(all.indics?.loading)
+        ){
+        let $indics = await $app.rpc({
+                                    type: 'query',
+                                    transform: true,
+                                    query: 'dbcb9cc3-dbd8-4bcb-8e37-44cd43d7637e.trDashboard'
+        });
+        if ( $indics.length > 0 ){
+            all.indics = JSON.parse($indics[0].trdashboard);
+        }
+    }
+    return all.indics;
 }

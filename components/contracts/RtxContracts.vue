@@ -1,8 +1,10 @@
 <template>
-    <v-toolbar density="compact" app>
+    <v-toolbar app>
         <v-btn tile icon="mdi-chevron-left"
                to="/" />
         <v-divider vertical />
+        <rtx-searcher :absolute="false" 
+                      flat />
         <v-spacer />
         <v-btn tile icon="mdi-reload"
                v-on:click="recalc" />
@@ -41,19 +43,20 @@
                 <v-card v-if="route" 
                         class="details"
                         flat tile>
-                    <v-card-title>
-                        {{ route['trroutes.routecode'] }} {{ route['trroutes.routename'] }}
+                    <v-card-title class="d-flex justify-space-between">
+                        <div class="text-truncate">
+                            {{ route.code }} {{ route.name }}
+                            <div class="text-muted">
+                                {{ route.routeTypeIDtypeName }}
+                            </div>
+                        </div>
+                        <v-btn variant="flat" 
+                               size="small" 
+                               append-icon="mdi-map" 
+                               color="primary" @click="to_map(vc)">
+                            На карте
+                        </v-btn>
                     </v-card-title>
-                    <v-card-subtitle>
-                        <v-row>
-                            <v-col>Протяженность: {{ route['trroutes.routelength'] }} км. </v-col>
-                            <v-col cols="3">
-                                <v-btn class="justify-end" variant="flat" size="small" append-icon="mdi-map" color="primary" @click="to_map(vc)">
-                                    На карте
-                                </v-btn>
-                            </v-col>
-                        </v-row>
-                    </v-card-subtitle>
                     <v-card-text>
                         <template v-for="(p, i) in calculated" :key="i">
                             <div class="headline text-primary">{{ p.name }}</div>
@@ -86,6 +89,7 @@ import JetInputNumber from "jet-ext/components/form/editors/JetInputNumber";
 import JetInputBoolean from "jet-ext/components/form/editors/JetInputBoolean";
 import JetInputString from "jet-ext/components/form/editors/JetInputString";
 import RtxContractsTbl from "~/components/contracts/RtxContractsTbl";
+import RtxSearcher from "~/components/RtxSearcher";
 
 const IDS = {
     ROUTES_URI    : 'sin2:/v:39e0099c-1747-45c5-9c61-bec8a790f2ae',
@@ -95,19 +99,8 @@ const IDS = {
     NORM_URI      : 'sin2:/v:b247a253-baab-4cd4-a413-f57b7c5fb415'
 };
 
-const nodes  = reactive([
-        {
-            key: 'routeID',
-            name: 'Выберите маршрут',
-            type: 'id',
-            uri: IDS.ROUTES_URI,
-            required: true,
-            label: 'Маршрут',
-            var: true,
-            value: null
-        }
-    ]),
-    result   = {
+const nodes = reactive([]),
+     result = {
         sum: (node, attr) => {
             if ( !Array.isArray(result[node]) )
                 return result[node];
@@ -126,25 +119,9 @@ const nodes  = reactive([
     calculated = computed(() => {
         return nodes.filter( node => !node.var);
     }),
-    routeId = computed({
-        get: () => {
-            let n = nodes.findIndex( $n => ($n.key === "routeID"));
-            return ( n > -1 ) ? nodes.value[n].value : null;
-        },
-        set: val => {
-            let n = nodes.findIndex( $n => ($n.key === "routeID"));
-            if ( n > -1 ){
-                let p = { ...nodes[n] };
-                p.value = val;
-                nodes.splice(n, 1, p);
-            }
-        }
-    });
+    route = computed( ()=> all.routes.active );
 
-if ( !empty(all.routes.active?.id) ) {
-    routeId.value = all.routes.active.id;
     _route();
-}
 
 const { load } = useCore();
 
@@ -157,14 +134,6 @@ const { pending, error } = useAsyncData( 'template', async() => {
     const uri = `${IDS.CTALG_URI}?filter=eq(field(".typeID"), param("${ result.typeID }", "id"))`;
     const res = await load({uri: uri});
     template.value = JSON.parse(res.values[0]['trpricealgorytms.typealgorytm']);
-});
-
-const { data: route } = useAsyncData( 'route', async() => {
-    if ( !result.routeID )
-        return;
-    const uri = `${IDS.FULLROUTES_URI}?id=${result.routeID}`;
-    const res = await load({uri: uri});
-    return res.values[0];
 });
 
 const { data: normatives } = useAsyncData( 'normatives', async() => {
@@ -259,6 +228,11 @@ const _next = async (src = null) => {
 };  //_next
 
 function _route(){
+    result.routeID = route.value.id;
+    if ( empty(result.routeID) ){
+        return;
+    }
+    
     let n = nodes.findIndex( m => (m.key === 'typeID') );
     if ( n < 0 ) {
         nodes.push({
@@ -277,7 +251,6 @@ function _route(){
             nodes.splice(nodes.length - 1, 1);
         }
     }
-    refreshNuxtData('route');
 };  //_route
 
 const _calc = () => {
@@ -339,6 +312,9 @@ function recalc(){
     }
 };  //recalc
 
+watch(route, () => {
+    _route(); 
+});
 
 watch(nodes, newValue => {
     console.log('nodes (watch)', nodes);
@@ -347,10 +323,6 @@ watch(nodes, newValue => {
     newValue.forEach( v => {
         result[v.key] = v.value || v.formula?.value;
     });
-    
-    if ( old.routeID !== result.routeID ) {
-        _route();       
-    } 
     
     if ( old.typeID !== result.typeID){
         _next();
@@ -361,6 +333,11 @@ watch(nodes, newValue => {
 
 </script>
 <style lang="scss">
+    .v-toolbar{
+        & .v-divider{
+            margin: 0 0.5rem;
+        }
+    }
     .rx-contra{
         & .splitpanes{
             height: 100%;
@@ -392,4 +369,4 @@ watch(nodes, newValue => {
             }
         }
     }
-</style>    
+</style>

@@ -1,5 +1,5 @@
 <template>
-    <div class="rtx-searcher">
+    <div :class="{'rtx-searcher': true, 'position-absolute': props.absolute, 'elevation-3': !props.flat}">
         <v-menu v-model="show"
                 min-width="640"
                 content-class="rtx-searcher__nav">
@@ -36,6 +36,14 @@
     import type { MapObject } from "~/services/types";
     import { getroutes } from "~/composables/all";
 
+    const props = withDefaults(defineProps<{
+                absolute:boolean, 
+                flat: boolean
+            }>(), {
+                absolute: true,
+                flat: false
+          });
+          
     const show: Ref<boolean> = ref(false),
           searched: Ref<Array>=ref([]);
     
@@ -91,10 +99,8 @@
 <style lang="scss">
     .rtx-searcher{
         background: rgba(255, 255, 255, .85);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
         padding: 0.25rem;
         border-radius: 4px;
-        position: absolute;
         left: 78px;
         top:  16px;
         z-index: 3;

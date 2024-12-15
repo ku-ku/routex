@@ -227,7 +227,7 @@
                 }
                 console.log('route(active)', r);
                 all.routes.active = r;
-                navigateTo({path:"/", query: {id: r.id}});
+                navigateTo({path:"/cartography", query: {id: r.id}});
                 break;
             case "shedule":
                 all.routes.active = active.value;

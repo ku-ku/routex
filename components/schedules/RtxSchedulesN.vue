@@ -133,7 +133,7 @@ const routeID  = ref(null),
         type: 'table',
         props: [
             {key: 'starttm', name: 'Начало', type: 'time', names: ['Начало']},
-            {key: 'endtm', name: 'Кончало', type: 'time', names: ['Кончало']},
+            {key: 'endtm', name: 'Окончание', type: 'time', names: ['Окончание']},
             {key: 'interval', name: 'Интервал', type: 'integer', names: ['Интервал']}
         ],
         value: [
