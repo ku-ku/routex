@@ -142,13 +142,13 @@ const routeID  = ref(null),
         var: 10
     }),
     days = ref([
-        {name:'Пн', active: false},
-        {name:'Вт', active: false},
-        {name:'Ср', active: false},
-        {name:'Чт', active: false},
-        {name:'Пт', active: false},
-        {name:'Сб', active: false},
-        {name:'Вс', active: false}
+        {name:'Пн', active: false, num: 1},
+        {name:'Вт', active: false, num: 2},
+        {name:'Ср', active: false, num: 3},
+        {name:'Чт', active: false, num: 4},
+        {name:'Пт', active: false, num: 5},
+        {name:'Сб', active: false, num: 6},
+        {name:'Вс', active: false, num: 7}
     ]),
     holiday = ref(false),
     show = ref(false),
@@ -240,7 +240,7 @@ const close = async(save) => {
         endDt    : endDt.value,
         routeID  : routeID.value,
         holiday  : holiday.value,
-        intervals: JSON.stringify(intervals.value),
+        intervals: JSON.stringify(intervals.value.value),
         days     : JSON.stringify(days.value),
         schedules: JSON.stringify(schedules.value)
     });

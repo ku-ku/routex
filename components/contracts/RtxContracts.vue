@@ -109,7 +109,8 @@ const nodes = reactive([]),
                 s = s + ( Number.isNaN(n[attr]) ? 0 : Number(n[attr]) );
             });
             return s;
-        }
+        },
+        totals: {}
     },
     template = ref(null),
     node     = ref(null),     //active node in template for calcs
@@ -123,7 +124,7 @@ const nodes = reactive([]),
 
     _route();
 
-const { load } = useCore();
+const { load, hours, distance } = useCore();
 
 const tenant = profile.tenant.id;
 
@@ -131,6 +132,8 @@ const { pending, error } = useAsyncData( 'template', async() => {
     if ( !result.typeID ) {
         return;
     }
+    result.hours = await hours(result.routeID);
+    result.distance = await distance(result.routeID);
     const uri = `${IDS.CTALG_URI}?filter=eq(field(".typeID"), param("${ result.typeID }", "id"))`;
     const res = await load({uri: uri});
     template.value = JSON.parse(res.values[0]['trpricealgorytms.typealgorytm']);

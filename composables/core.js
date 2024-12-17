@@ -167,7 +167,33 @@ export default function useOrm() {
         return result;
     }
 
+    const hours = async (route) => {
+        const result = await load_query(
+            '8bd2aaab-6189-4242-b425-67d384318782.trCalcHours',
+            {
+                in_route: route,
+                in_start: '2024-01-01',
+                in_end  : '2024-12-31'
+            }
+        )
+        return result[0].trcalchours;
+    }
+
+    const distance = async (route) => {
+        const result = await load_query(
+            '8bd2aaab-6189-4242-b425-67d384318782.trCalcMileage',
+            {
+                in_route: route,
+                in_start: '2024-01-01',
+                in_end  : '2024-12-31'
+            }
+        )
+        return result[0].trcalcmileage;
+    }
+
     return {
-        load
+        load,
+        hours,
+        distance
     }
 }
