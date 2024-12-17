@@ -24,7 +24,9 @@ const config: NuxtConfig = {
         },
     },
     css: [
-        'jet-ext/jet.scss'
+        'vuetify/lib/styles/main.sass',
+        'jet-ext/jet.scss',
+        '~/assets/index.scss'
     ],
     experimental: {
         asyncContext: false,

@@ -1,3 +1,4 @@
+import { empty } from "jet-ext/utils";
 declare const $app: any;
 
 const NORMS_PARTS_VIEW_ID = 'aaf3211a-3d67-44bd-9f3a-aa04e1c4b4df';
@@ -22,14 +23,17 @@ export async function getparts():Promise<Array<any>>{
 };
 
 export async function getnorms(partId: string):Promise<Array<any>>{
-    const data = await $app.rpc({
+    const opts = {
                         type: "core-read",
                         transform: true,
                         query: `sin2:/v:${ NORMS_VIEW_ID }?filter=eq(field(".stID"),param("${ partId }", "id"))
                         &sort=
-
                         )`
-    });
+    };
+    if ( empty(partId) ){
+        opts.query = `sin2:/v:${ NORMS_VIEW_ID }?fields=.stID,.stValue,max(.regDt) as regDt`;
+    }
+    const data = await $app.rpc( opts );
     
     return data;
 };  //getnorms

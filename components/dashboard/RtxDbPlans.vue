@@ -55,6 +55,11 @@
                 margin-left: 0.5rem;
                 font-weight: bold;
                 font-size: 1rem;
+                & .v-chip{
+                    min-width: 5rem;
+                    text-align: right;
+                    justify-content: flex-end;
+                }
             }
         }
     }

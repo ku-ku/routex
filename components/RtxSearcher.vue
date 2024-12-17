@@ -34,7 +34,7 @@
     import { empty } from "jet-ext/utils";
     import JetSearchInput from "jet-ext/components/JetSearchInput";
     import type { MapObject } from "~/services/types";
-    import { getroutes } from "~/composables/all";
+    import { getroutes, getroutepoints } from "~/composables/all";
 
     const props = withDefaults(defineProps<{
                 absolute:boolean, 
@@ -89,10 +89,14 @@
         show.value = (searched.value.length > 0);
     };  //search
     
-    function use(item: MapObject){
+    async function use(item: MapObject){
         all.routes.active = item;
         saveSettings({lastRoute: item.id});
         show.value = false;
+        if ( !(item.points?.length > 0) ){
+            await getroutepoints(item);
+        }
+        navigateTo({path:"/cartography", query: {id: item.id}});
     }
     
 </script>

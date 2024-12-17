@@ -33,34 +33,49 @@
     };  //_ready
     
     _ready().then( ()=>{
-        console.log('tarifs', tarifs);
         chart = echarts.init(conte);
+        let min = Number.MAX_SAFE_INTEGER,
+            max = 0,
+            source = [['tarif', 'тариф']];
+            
+        tarifs.value.forEach(t => {
+            source.push([`${ t }`, t]);
+            if ( min > Number(t) ){
+                min = Number(t);
+            }
+            if ( max < Number(t) ){
+                max = Number(t);
+            }
+        });
+        
+        console.log('tarifs', tarifs.value, source);
+        
         let opts = {
-            tooltip: {
-              trigger: 'axis',
-              axisPointer: {
-                type: 'shadow'
-              }
+            dataset: {
+                source
             },
-            grid: {
-              left: '3%',
-              right: '4%',
-              bottom: '3%',
-              containLabel: true
-            },
-            xAxis: {
-              type: 'value',
-              boundaryGap: [0, 0.01]
-            },
-            yAxis: {
-              type: 'category',
-              data: tarifs.value
+            grid: { containLabel: false },
+            xAxis: { name: 'тариф' },
+            yAxis: { type: 'category' },
+            visualMap: {
+                orient: 'horizontal',
+                left: 'center',
+                min: min,
+                max: max,
+                text: [`макс.`, `мин.`],
+                dimension: 1,
+                inRange: {
+                    color: ['#65B581', '#FFCE34', '#FD665F']
+                }
             },
             series: [{
                 type: 'bar',
-                data: tarifs.value
+                encode: {
+                    x: 'тариф',
+                    y: 'tarif'
+                }
             }]
-        };    
+        };
         chart.setOption(opts);
     }).catch(e => {
         console.log('ERR (ready)', e);

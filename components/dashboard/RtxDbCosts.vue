@@ -33,13 +33,9 @@
     };  //_ready
     
     _ready().then( ()=>{
-        console.log('tarifs', costs);
+        const _fmt = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
         chart = echarts.init(conte);
         let opts = {
-            tooltip: {
-                trigger: 'item',
-                formatter: '{b}<br />{c}'
-            },
             series: [{
                     name: 'Funnel',
                     type: 'funnel',
@@ -76,9 +72,9 @@
                       }
                     },
                     data: [
-                            { value: Number(costs.value.max).toFixed(1), name: 'Max' },
-                            { value: Number(costs.value.avg).toFixed(1), name: 'Avg' },
-                            { value: Number(costs.value.min).toFixed(1), name: 'Min' }
+                            { value: Math.round(costs.value.max), name: _fmt.format(costs.value.max) },
+                            { value: Math.round(costs.value.avg), name: _fmt.format(costs.value.avg) },
+                            { value: Math.round(costs.value.min), name: '' }
                     ]
             }]
         };

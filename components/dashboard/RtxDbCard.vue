@@ -1,5 +1,6 @@
 <template>
-    <v-card :loading="pending">
+    <v-card :loading="pending"
+            elevation="2">
         <v-card-title>
             <v-icon>{{ icon }}</v-icon>
             {{ title }}
@@ -38,7 +39,7 @@
 <style lang="scss" scoped>
     .v-card{
         max-width: 33%;
-        min-width: 240px;
+        min-width: 260px;
         margin-right: 1rem;
         margin-bottom: 1rem;
         &-title{
