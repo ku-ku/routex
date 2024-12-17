@@ -1,4 +1,4 @@
-import { load as _load } from '~/services/core';
+import { load as _load, load_query } from '~/services/core';
 
 const model = reactive([]);
 
